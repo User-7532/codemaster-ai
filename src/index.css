@@ -116,28 +116,28 @@
   }
 
   .tk-kw {
-    color: #e8836a;
+    color: #ff9d85;
   }
 
   .tk-str {
-    color: #a9c98a;
+    color: #b9d98f;
   }
 
   .tk-num {
-    color: #e5c07b;
+    color: #f2cf8b;
   }
 
   .tk-com {
-    color: #6d6255;
+    color: #a4967f;
     font-style: italic;
   }
 
   .tk-meta {
-    color: #bda4e0;
+    color: #cbb3e8;
   }
 
   .tk-fn {
-    color: #86bfe0;
+    color: #9dcfee;
   }
 
   .rise-in {
