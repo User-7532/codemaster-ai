@@ -125,7 +125,7 @@ export default function Interview() {
 
         <div className="rounded-xl border border-border/60 bg-card/40 p-5">
           <div className="flex items-center gap-2">
-            <Trophy className="h-3.5 w-3.5 text-amber-300/80" />
+            <Trophy className="h-3.5 w-3.5 text-amber-700/90" />
             <h2 className="text-xs">前回までの結果</h2>
           </div>
           {history.length === 0 ? (

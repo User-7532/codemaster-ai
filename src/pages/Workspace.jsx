@@ -33,6 +33,7 @@ export default function Workspace() {
   const [gisting, setGisting] = useState(false);
   const [result, setResult] = useState(null);
   const [mentorOpen, setMentorOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const [remaining, setRemaining] = useState(limit * 60);
   const startedAt = useRef(Date.now());
   const autoSubmitted = useRef(false);
@@ -122,11 +123,11 @@ export default function Workspace() {
       const res = await base44.functions.invoke('exportGist', { title: problem.title, code, language });
       if (res.data?.error) throw new Error(res.data.error);
       if (!res.data?.connected) {
-        toast({ title: 'GitHub連携が必要です', description: res.data.message });
+        toast({ title: 'まだ保存できません', description: 'GitHubの準備ができていません。少し待ってからもう一度お試しください' });
         return;
       }
       window.open(res.data.url, '_blank');
-      toast({ title: 'Gistに送信しました' });
+      toast({ title: 'GitHubに保存しました', description: '書いたコードはいつでも見返せます' });
     } catch (e) {
       toast({ title: 'GitHubに送れませんでした', description: e.message, variant: 'destructive' });
     } finally {
@@ -182,7 +183,7 @@ export default function Workspace() {
         {mode === 'interview' && limit > 0 && (
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-display text-[11px] ${
-              urgent ? 'bg-rose-500/15 text-rose-300' : 'bg-secondary text-foreground/80'
+              urgent ? 'bg-rose-500/15 text-rose-700' : 'bg-secondary text-foreground/80'
             }`}
           >
             <Timer className="h-3 w-3" />
@@ -193,20 +194,36 @@ export default function Workspace() {
           type="button"
           onClick={sendToGist}
           disabled={gisting}
-          className="ml-auto flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:border-border hover:text-foreground"
-          title="書いたコードをGitHubのGistに送る"
+          className="ml-auto flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-3 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-60"
+          title="書いたコードをGitHubに保存する"
         >
           {gisting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Github className="h-3 w-3" />}
-          Gist
+          {gisting ? '保存中…' : 'コードを保存'}
         </button>
       </div>
 
       <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        <aside className="rounded-xl border border-border/60 bg-card/40 p-5 lg:sticky lg:top-5 lg:max-h-[calc(100vh-40px)] lg:overflow-y-auto">
+        <aside className="hidden rounded-xl border border-border/60 bg-card/60 p-5 lg:sticky lg:top-5 lg:block lg:max-h-[calc(100vh-40px)] lg:overflow-y-auto">
           <ProblemBrief problem={problem} />
         </aside>
 
         <section className="min-w-0 space-y-4">
+          <div className="rounded-xl border border-border/70 bg-card/70 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setBriefOpen((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-3 text-xs text-foreground"
+            >
+              <span className="font-medium">問題文を読む</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${briefOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {briefOpen && (
+              <div className="border-t border-border/60 px-4 py-4">
+                <ProblemBrief problem={problem} />
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-1.5">
             {LANGUAGES.map((l) => (
               <button

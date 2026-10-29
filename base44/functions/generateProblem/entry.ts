@@ -48,6 +48,7 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const {
       topic = '',
+      request = '',
       difficulty = 'basic',
       language = 'cpp',
       weak_topics = [],
@@ -59,6 +60,7 @@ export default async function (req) {
 
     const prompt = `あなたは技術面接の出題者です。C++とPythonの両方で解けるプログラミング問題を1問作ってください。
 
+【この人の要望（最優先で反映する）】${String(request).slice(0, 800) || '特になし'}
 【希望トピック】${topic || '指定なし（基礎的で面接頻出のものを選ぶ）'}
 【難易度】${DIFFICULTY_JA[difficulty] || DIFFICULTY_JA.basic}
 【主に使う言語】${language === 'python' ? 'Python' : 'C++'}

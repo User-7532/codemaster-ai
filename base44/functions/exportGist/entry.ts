@@ -25,6 +25,8 @@ export default async function (req) {
         Authorization: `Bearer ${conn.accessToken}`,
         Accept: 'application/vnd.github+json',
         'Content-Type': 'application/json',
+        'User-Agent': 'CodeDojo',
+        'X-GitHub-Api-Version': '2022-11-28',
       },
       body: JSON.stringify({
         description: `CodeDojo: ${title}`,

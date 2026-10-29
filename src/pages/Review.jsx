@@ -150,7 +150,7 @@ export default function Review() {
                 to={`/solve/${p.id}?mode=review`}
                 className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-4 py-3 transition-colors hover:border-border hover:bg-accent/30"
               >
-                <span className="font-display text-[11px] text-rose-300">{p.rate}%</span>
+                <span className="font-display text-[11px] text-rose-600">{p.rate}%</span>
                 <span className="min-w-0 flex-1 truncate text-[13px]">{p.title}</span>
                 <span className="shrink-0 text-[11px] text-muted-foreground">
                   {p.wrong} / {p.total} 回ミス
@@ -211,14 +211,14 @@ export default function Review() {
                     <button
                       type="button"
                       onClick={() => answerKnowledge(false)}
-                      className="flex-1 rounded-lg border border-rose-400/30 bg-rose-500/10 py-2.5 text-[11px] text-rose-300"
+                      className="flex-1 rounded-lg border border-rose-700/25 bg-rose-500/10 py-2.5 text-[11px] text-rose-700"
                     >
                       わからなかった
                     </button>
                     <button
                       type="button"
                       onClick={() => answerKnowledge(true)}
-                      className="flex-1 rounded-lg border border-teal-400/30 bg-teal-500/10 py-2.5 text-[11px] text-teal-300"
+                      className="flex-1 rounded-lg border border-teal-700/25 bg-teal-500/10 py-2.5 text-[11px] text-teal-700"
                     >
                       言えた
                     </button>

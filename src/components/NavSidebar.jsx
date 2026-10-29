@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -7,10 +8,20 @@ import {
   BookOpen,
   RotateCcw,
   LineChart,
+  Menu,
 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import WallpaperPicker from '@/components/WallpaperPicker';
 import { cn } from '@/lib/utils';
 
-const items = [
+const primaryItems = [
+  { to: '/', label: 'ホーム', icon: LayoutDashboard, end: true },
+  { to: '/curriculum', label: '問題', icon: Layers },
+  { to: '/generate', label: 'AI出題', icon: Sparkles },
+  { to: '/review', label: '復習', icon: RotateCcw },
+];
+
+const allItems = [
   { to: '/', label: 'ダッシュボード', icon: LayoutDashboard, end: true },
   { to: '/curriculum', label: 'カリキュラム', icon: Layers },
   { to: '/generate', label: 'AI出題', icon: Sparkles },
@@ -20,19 +31,31 @@ const items = [
   { to: '/stats', label: '弱点分析', icon: LineChart },
 ];
 
+const extraItems = allItems.filter((i) => !primaryItems.some((p) => p.to === i.to));
+
 export default function NavSidebar() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <>
+      {/* mobile header */}
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-2.5 backdrop-blur lg:hidden">
+        <NavLink to="/" className="font-display text-lg leading-none tracking-tight text-foreground">
+          Code<span className="text-primary">Dojo</span>
+        </NavLink>
+        <WallpaperPicker compact />
+      </header>
+
       {/* desktop */}
-      <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-border/70 bg-sidebar/60 backdrop-blur sticky top-0 h-screen">
-        <div className="px-5 pt-7 pb-6">
-          <p className="font-display text-lg tracking-tight text-foreground leading-none">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/70 backdrop-blur lg:flex">
+        <div className="px-5 pb-6 pt-7">
+          <p className="font-display text-xl leading-none tracking-tight text-foreground">
             Code<span className="text-primary">Dojo</span>
           </p>
-          <p className="mt-1.5 text-[11px] text-muted-foreground tracking-wide">面接対策の道場</p>
+          <p className="mt-2 text-[11px] tracking-wide text-muted-foreground">面接のための、手を動かす道場</p>
         </div>
-        <nav className="flex-1 px-3 space-y-0.5">
-          {items.map(({ to, label, icon: Icon, end }) => (
+        <nav className="flex-1 space-y-0.5 px-3">
+          {allItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -41,7 +64,7 @@ export default function NavSidebar() {
                 cn(
                   'group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
                   isActive
-                    ? 'bg-primary/12 text-foreground'
+                    ? 'bg-primary/10 text-foreground'
                     : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                 )
               }
@@ -55,17 +78,20 @@ export default function NavSidebar() {
             </NavLink>
           ))}
         </nav>
-        <div className="px-5 py-5 text-[11px] leading-relaxed text-muted-foreground/70">
-          C++ / Python
-          <br />
-          基礎 → 低レイヤー → 大型テック
+        <div className="px-5 py-5">
+          <WallpaperPicker />
+          <p className="mt-4 text-[10px] leading-relaxed text-muted-foreground/80">
+            C++ / Python
+            <br />
+            基礎 → 低レイヤー → 大型テック
+          </p>
         </div>
       </aside>
 
-      {/* mobile */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/70 bg-card/95 backdrop-blur">
-        <div className="flex items-stretch justify-between px-1">
-          {items.map(({ to, label, icon: Icon, end }) => (
+      {/* mobile bottom bar */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        <div className="flex items-stretch">
+          {primaryItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -77,10 +103,38 @@ export default function NavSidebar() {
                 )
               }
             >
-              <Icon className="h-4 w-4" />
-              <span className="truncate">{label}</span>
+              <Icon className="h-[18px] w-[18px]" />
+              <span>{label}</span>
             </NavLink>
           ))}
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] text-muted-foreground">
+              <Menu className="h-[18px] w-[18px]" />
+              <span>メニュー</span>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl border-border bg-card p-0">
+              <SheetHeader className="px-5 pb-1 pt-5 text-left">
+                <SheetTitle className="font-display text-base tracking-tight">メニュー</SheetTitle>
+              </SheetHeader>
+              <div className="px-3 pb-8">
+                {extraItems.map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-foreground transition-colors hover:bg-accent/60"
+                  >
+                    <Icon className="h-4 w-4 text-primary/80" />
+                    {label}
+                  </NavLink>
+                ))}
+                <div className="mt-3 border-t border-border/60 px-2 pt-4">
+                  <p className="mb-2 text-[11px] text-muted-foreground">着せ替え（壁紙）</p>
+                  <WallpaperPicker inline />
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
     </>

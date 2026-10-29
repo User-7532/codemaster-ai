@@ -2,9 +2,9 @@ import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tones = {
-  cyan: { dot: 'bg-cyan-400', bar: 'bg-cyan-400', text: 'text-cyan-300' },
-  amber: { dot: 'bg-amber-400', bar: 'bg-amber-400', text: 'text-amber-300' },
-  rose: { dot: 'bg-rose-400', bar: 'bg-rose-400', text: 'text-rose-300' },
+  cyan: { dot: 'bg-cyan-600', bar: 'bg-cyan-600/80', text: 'text-cyan-800' },
+  amber: { dot: 'bg-amber-600', bar: 'bg-amber-600/80', text: 'text-amber-800' },
+  rose: { dot: 'bg-rose-600', bar: 'bg-rose-600/80', text: 'text-rose-800' },
 };
 
 export default function StageCard({ step, title, subtitle, solved, total, tone }) {

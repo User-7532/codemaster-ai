@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils';
 export default function StatCard({ icon: Icon, label, value, unit, hint, tone = 'primary' }) {
   const tones = {
     primary: 'text-primary bg-primary/10',
-    mint: 'text-teal-300 bg-teal-400/10',
-    amber: 'text-amber-300 bg-amber-400/10',
-    violet: 'text-violet-300 bg-violet-400/10',
+    mint: 'text-teal-700 bg-teal-600/10',
+    amber: 'text-amber-700 bg-amber-500/15',
+    violet: 'text-violet-700 bg-violet-600/10',
   };
 
   return (

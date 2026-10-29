@@ -7,7 +7,7 @@ export default function HintBox({ hints, loading, onReveal, disabled }) {
     <div className="rounded-xl border border-border/70 bg-card/40 p-4">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Lightbulb className="h-3.5 w-3.5 text-amber-300/80" />
+          <Lightbulb className="h-3.5 w-3.5 text-amber-700/90" />
           ヒント（{hints.length} / 3）
         </span>
         {canAsk ? (
@@ -33,7 +33,7 @@ export default function HintBox({ hints, loading, onReveal, disabled }) {
         <ol className="mt-3 space-y-2">
           {hints.map((h, i) => (
             <li key={i} className="rise-in rounded-lg bg-secondary/40 px-3 py-2 text-xs leading-relaxed text-foreground/85">
-              <span className="mr-1.5 font-display text-[10px] text-amber-300/80">HINT {i + 1}</span>
+              <span className="mr-1.5 font-display text-[10px] text-amber-700/90">HINT {i + 1}</span>
               <span className="whitespace-pre-wrap">{h}</span>
             </li>
           ))}

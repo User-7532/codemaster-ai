@@ -16,6 +16,7 @@ const TOPIC_CHIPS = ['配列', '文字列', 'スタック', 'グラフ', '動的
 export default function Generate() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [request, setRequest] = useState('');
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState('intermediate');
   const [language, setLanguage] = useState('cpp');
@@ -53,6 +54,7 @@ export default function Generate() {
     try {
       const res = await base44.functions.invoke('generateProblem', {
         topic,
+        request,
         difficulty,
         language,
         weak_topics: weakTopics,
@@ -78,6 +80,20 @@ export default function Generate() {
       </header>
 
       <div className="mt-7 space-y-6">
+        <div>
+          <label className="text-xs text-muted-foreground">こんな問題が欲しい（自由に書けます）</label>
+          <textarea
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
+            rows={3}
+            placeholder="例：文字列を逆順にする問題。再帰は使わずに解きたい"
+            className="mt-2 w-full resize-none rounded-lg border border-border/70 bg-card/70 px-3 py-2.5 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:outline-none"
+          />
+          <p className="mt-1.5 text-[10px] text-muted-foreground/80">
+            書いた内容をその場で読んで、AIが問題を作ります。空のままなら下のトピックから選びます。
+          </p>
+        </div>
+
         <div>
           <label className="text-xs text-muted-foreground">トピック（空でもOK）</label>
           <input
@@ -113,7 +129,7 @@ export default function Generate() {
                   key={t}
                   type="button"
                   onClick={() => setTopic(t)}
-                  className="rounded-full bg-rose-500/10 px-2.5 py-1 text-[11px] text-rose-300 transition-colors hover:bg-rose-500/20"
+                  className="rounded-full bg-rose-500/10 px-2.5 py-1 text-[11px] text-rose-700 transition-colors hover:bg-rose-500/15"
                 >
                   {t} を練習する
                 </button>

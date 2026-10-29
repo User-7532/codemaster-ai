@@ -114,17 +114,18 @@ export default function Stats() {
           <div className="mt-4 h-40">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={summary.trend} margin={{ top: 4, right: 4, bottom: 0, left: -28 }}>
-                <CartesianGrid vertical={false} stroke="hsl(210 11% 16%)" />
-                <XAxis dataKey="day" tick={{ fill: '#7b8794', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <CartesianGrid vertical={false} stroke="hsl(34 24% 85%)" />
+                <XAxis dataKey="day" tick={{ fill: '#8a7c6b', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{
-                    background: '#11141a',
-                    border: '1px solid #262c35',
+                    background: '#fffdf7',
+                    border: '1px solid #e2d7c4',
                     borderRadius: 8,
                     fontSize: 11,
+                    color: '#342c24',
                   }}
                 />
-                <Bar dataKey="提出" fill="hsl(12 80% 57%)" radius={[3, 3, 0, 0]} maxBarSize={26} />
+                <Bar dataKey="提出" fill="hsl(14 55% 46%)" radius={[3, 3, 0, 0]} maxBarSize={26} />
               </BarChart>
             </ResponsiveContainer>
           </div>

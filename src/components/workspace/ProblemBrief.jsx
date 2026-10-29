@@ -43,7 +43,7 @@ export default function ProblemBrief({ problem }) {
                 {(problem.test_cases || []).map((t, i) => (
                   <tr key={i} className="align-top">
                     <td className="px-2.5 py-1.5 text-foreground/85">{t.input || '-'}</td>
-                    <td className="px-2.5 py-1.5 text-teal-300/90">{t.expected || '-'}</td>
+                    <td className="px-2.5 py-1.5 text-teal-700">{t.expected || '-'}</td>
                   </tr>
                 ))}
               </tbody>

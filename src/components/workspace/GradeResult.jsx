@@ -30,7 +30,7 @@ export default function GradeResult({ result, onOpenMentor }) {
         <ul className="mt-3.5 space-y-1.5">
           {result.test_results.map((t, i) => (
             <li key={i} className="flex items-start gap-2 text-[11px]">
-              <span className={t.passed ? 'mt-0.5 text-teal-400' : 'mt-0.5 text-rose-400'}>
+              <span className={t.passed ? 'mt-0.5 text-teal-600' : 'mt-0.5 text-rose-600'}>
                 {t.passed ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
               </span>
               <span className="min-w-0 flex-1">

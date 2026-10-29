@@ -6,6 +6,7 @@ import { todayISO, toISO } from '@/lib/srs';
 import StatCard from '@/components/dashboard/StatCard';
 import StageCard from '@/components/dashboard/StageCard';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
+import WallpaperPicker from '@/components/WallpaperPicker';
 
 const STAGE_META = [
   { step: '01', title: '定石 — 型を体に入れる', subtitle: '二本ポインタ、BFS、再帰など王道の型', tone: 'cyan' },
@@ -95,16 +96,21 @@ export default function Dashboard() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-12">
-      <header className="rise-in">
-        <p className="text-[11px] text-muted-foreground">
-          {new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
-        </p>
-        <h1 className="mt-3 font-display text-3xl leading-tight tracking-tight sm:text-4xl">
-          今日は、どこまで<span className="text-primary">書ける</span>ようにする？
-        </h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          型を覚えるより、手を動かして自分でひねり出す。面接で聞かれる順番どおりに積み上げます。
-        </p>
+      <header className="rise-in flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] tracking-[0.14em] text-muted-foreground">
+            {new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
+          </p>
+          <h1 className="mt-3 font-display text-3xl leading-tight tracking-tight sm:text-4xl">
+            今日は、どこまで<span className="text-primary">書ける</span>ようにする？
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            型を覚えるより、手を動かして自分でひねり出す。面接で聞かれる順番どおりに、少しずつ積み上げます。
+          </p>
+        </div>
+        <div className="hidden shrink-0 sm:block">
+          <WallpaperPicker />
+        </div>
       </header>
 
       <section className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">

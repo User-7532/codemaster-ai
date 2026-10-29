@@ -113,11 +113,11 @@ export default function Curriculum() {
                         >
                           <span className="shrink-0">
                             {st === 'correct' ? (
-                              <CheckCircle2 className="h-4 w-4 text-teal-400" />
+                              <CheckCircle2 className="h-4 w-4 text-teal-600" />
                             ) : st === 'partial' ? (
-                              <CircleDot className="h-4 w-4 text-amber-400" />
+                              <CircleDot className="h-4 w-4 text-amber-600" />
                             ) : st === 'wrong' ? (
-                              <CircleDot className="h-4 w-4 text-rose-400" />
+                              <CircleDot className="h-4 w-4 text-rose-500/70" />
                             ) : (
                               <Circle className="h-4 w-4 text-muted-foreground/40" />
                             )}

@@ -145,14 +145,14 @@ export default function Knowledge() {
                 <button
                   type="button"
                   onClick={() => answer(false)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 py-2.5 text-[11px] text-rose-300 transition-colors hover:bg-rose-500/20"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-rose-700/25 bg-rose-500/10 py-2.5 text-[11px] text-rose-700 transition-colors hover:bg-rose-500/15"
                 >
                   <X className="h-3.5 w-3.5" /> わからなかった
                 </button>
                 <button
                   type="button"
                   onClick={() => answer(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-teal-400/30 bg-teal-500/10 py-2.5 text-[11px] text-teal-300 transition-colors hover:bg-teal-500/20"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-teal-700/25 bg-teal-500/10 py-2.5 text-[11px] text-teal-700 transition-colors hover:bg-teal-500/15"
                 >
                   <Check className="h-3.5 w-3.5" /> 言えた
                 </button>
