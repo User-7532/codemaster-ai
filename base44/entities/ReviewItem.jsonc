@@ -1,0 +1,45 @@
+{
+  "name": "ReviewItem",
+  "type": "object",
+  "properties": {
+    "item_type": {
+      "type": "string",
+      "enum": [
+        "problem",
+        "knowledge"
+      ]
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD"
+    },
+    "interval_days": {
+      "type": "number"
+    },
+    "streak": {
+      "type": "number",
+      "description": "\u9023\u7d9a\u6b63\u89e3\u6570"
+    },
+    "last_result": {
+      "type": "string",
+      "enum": [
+        "correct",
+        "wrong"
+      ]
+    }
+  },
+  "required": [
+    "item_type",
+    "item_id",
+    "due_date"
+  ]
+}

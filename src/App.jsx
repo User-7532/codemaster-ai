@@ -6,7 +6,16 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import Layout from '@/components/Layout';
 // Add page imports here
+import Dashboard from '@/pages/Dashboard';
+import Curriculum from '@/pages/Curriculum';
+import Workspace from '@/pages/Workspace';
+import Generate from '@/pages/Generate';
+import Interview from '@/pages/Interview';
+import Knowledge from '@/pages/Knowledge';
+import Review from '@/pages/Review';
+import Stats from '@/pages/Stats';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -35,6 +44,16 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Add your page Route elements here */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/curriculum" element={<Curriculum />} />
+        <Route path="/solve/:problemId" element={<Workspace />} />
+        <Route path="/generate" element={<Generate />} />
+        <Route path="/interview" element={<Interview />} />
+        <Route path="/knowledge" element={<Knowledge />} />
+        <Route path="/review" element={<Review />} />
+        <Route path="/stats" element={<Stats />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

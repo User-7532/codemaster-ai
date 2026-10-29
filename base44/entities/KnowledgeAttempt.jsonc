@@ -1,0 +1,25 @@
+{
+  "name": "KnowledgeAttempt",
+  "type": "object",
+  "properties": {
+    "card_id": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "correct": {
+      "type": "boolean"
+    },
+    "mode": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "card_id",
+    "correct"
+  ]
+}

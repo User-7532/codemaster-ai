@@ -1,92 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --font-heading: ui-sans-serif, system-ui, sans-serif;
-    --font-body: ui-sans-serif, system-ui, sans-serif;
-    --font-display: ui-sans-serif, system-ui, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --background: 210 16% 5%;
+    --foreground: 40 22% 94%;
+    --card: 210 14% 8%;
+    --card-foreground: 40 22% 94%;
+    --popover: 210 14% 9%;
+    --popover-foreground: 40 22% 94%;
+    --primary: 12 80% 57%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 11% 13%;
+    --secondary-foreground: 40 22% 92%;
+    --muted: 210 11% 13%;
+    --muted-foreground: 210 9% 62%;
+    --accent: 210 11% 16%;
+    --accent-foreground: 40 22% 94%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 11% 17%;
+    --input: 210 11% 20%;
+    --ring: 12 80% 57%;
+    --chart-1: 12 80% 57%;
+    --chart-2: 173 58% 48%;
+    --chart-3: 43 84% 60%;
+    --chart-4: 262 60% 66%;
+    --chart-5: 199 70% 55%;
+    --radius: 0.75rem;
+    --font-heading: 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sidebar-background: 210 16% 6%;
+    --sidebar-foreground: 40 22% 90%;
+    --sidebar-primary: 12 80% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 210 11% 13%;
+    --sidebar-accent-foreground: 40 22% 94%;
+    --sidebar-border: 210 11% 15%;
+    --sidebar-ring: 12 80% 57%;
   }
 }
 
-
-
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body antialiased;
+    background-image: radial-gradient(60% 45% at 15% -10%, hsl(12 80% 40% / 0.12), transparent 70%),
+      radial-gradient(50% 40% at 100% 0%, hsl(199 70% 40% / 0.08), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(12 80% 57% / 0.32);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(210 11% 22%);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(210 11% 30%);
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .grain {
+    background-image: radial-gradient(hsl(40 22% 94% / 0.04) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  .cloze-hidden {
+    color: transparent;
+    border-radius: 4px;
+    background: hsl(12 80% 57% / 0.22);
+    box-shadow: inset 0 -2px 0 hsl(12 80% 57% / 0.45);
+    transition: color 180ms ease, background 180ms ease;
+  }
+
+  .cloze-shown {
+    color: hsl(12 80% 72%);
+    background: hsl(12 80% 57% / 0.1);
+    border-radius: 4px;
+    padding: 0 2px;
+  }
+
+  .tk-kw {
+    color: #ff9d7a;
+  }
+
+  .tk-str {
+    color: #a8e063;
+  }
+
+  .tk-num {
+    color: #ffd479;
+  }
+
+  .tk-com {
+    color: #5d6b7a;
+    font-style: italic;
+  }
+
+  .tk-meta {
+    color: #c3a6ff;
+  }
+
+  .tk-fn {
+    color: #7cc4ff;
+  }
+
+  .rise-in {
+    animation: rise-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
