@@ -1,42 +1,55 @@
 {
   "name": "Submission",
-  "type": "object",
   "properties": {
+    "code": {
+      "type": "string"
+    },
+    "duration_seconds": {
+      "type": "number"
+    },
+    "explanation": {
+      "description": "\u5e73\u6613\u306a\u8a00\u8449\u3067\u306e\u89e3\u8aac",
+      "type": "string"
+    },
+    "interview_feedback": {
+      "description": "\u9762\u63a5\u5b98\u76ee\u7dda\u306e\u8a55\u4fa1",
+      "type": "string"
+    },
+    "issues": {
+      "description": "\u30b3\u30fc\u30c9\u54c1\u8cea\u306e\u6307\u6458",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "language": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "practice",
+        "interview",
+        "review",
+        "ai",
+        "mixed"
+      ],
+      "type": "string"
+    },
     "problem_id": {
       "type": "string"
     },
     "problem_title": {
       "type": "string"
     },
-    "language": {
-      "type": "string"
-    },
-    "code": {
-      "type": "string"
-    },
-    "verdict": {
-      "type": "string",
-      "enum": [
-        "correct",
-        "partial",
-        "wrong"
-      ],
-      "description": "AI\u5224\u5b9a\u306e\u7d50\u679c"
-    },
     "score": {
-      "type": "number",
-      "description": "0-100\u70b9"
-    },
-    "time_complexity": {
-      "type": "string"
+      "description": "0-100\u70b9",
+      "type": "number"
     },
     "space_complexity": {
       "type": "string"
     },
     "test_results": {
-      "type": "array",
       "items": {
-        "type": "object",
         "properties": {
           "case": {
             "type": "string"
@@ -47,47 +60,48 @@
           "reason": {
             "type": "string"
           }
-        }
-      }
+        },
+        "type": "object"
+      },
+      "type": "array"
     },
-    "issues": {
-      "type": "array",
+    "time_complexity": {
+      "type": "string"
+    },
+    "topics": {
       "items": {
         "type": "string"
       },
-      "description": "\u30b3\u30fc\u30c9\u54c1\u8cea\u306e\u6307\u6458"
+      "type": "array"
     },
-    "explanation": {
-      "type": "string",
-      "description": "\u5e73\u6613\u306a\u8a00\u8449\u3067\u306e\u89e3\u8aac"
-    },
-    "interview_feedback": {
-      "type": "string",
-      "description": "\u9762\u63a5\u5b98\u76ee\u7dda\u306e\u8a55\u4fa1"
-    },
-    "topics": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "mode": {
-      "type": "string",
+    "verdict": {
+      "description": "AI\u5224\u5b9a\u306e\u7d50\u679c",
       "enum": [
-        "practice",
-        "interview",
-        "review",
-        "ai",
-        "mixed"
-      ]
-    },
-    "duration_seconds": {
-      "type": "number"
+        "correct",
+        "partial",
+        "wrong"
+      ],
+      "type": "string"
     }
   },
   "required": [
     "problem_id",
     "verdict",
     "mode"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    }
+  },
+  "type": "object"
 }
