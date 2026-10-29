@@ -51,20 +51,20 @@ export default function TopicTrendChart() {
   const { topics, data } = useMemo(() => topicTrends(subs || []), [subs]);
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card/50 p-5">
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-medium">苦手の克服ペース（できた割合）</h3>
-        <span className="font-display text-[11px] text-muted-foreground">全期間</span>
+    <div className="rounded-xl border border-border/70 bg-card/50 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="truncate text-xs font-medium">苦手の克服ペース</h3>
+        <span className="shrink-0 font-display text-[10px] text-muted-foreground">全期間</span>
       </div>
 
       {subs === null ? (
-        <div className="mt-6 h-40 animate-pulse rounded-lg bg-secondary/50" />
+        <div className="mt-3 h-32 animate-pulse rounded-lg bg-secondary/50" />
       ) : topics.length === 0 ? (
-        <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
-          同じトピックを2回以上解くと、できた割合が伸びていく様子がここに出ます。
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          同じトピックを2回以上解くと、伸びていく様子がここに出ます。
         </p>
       ) : (
-        <div className="mt-4 h-48">
+        <div className="mt-3 h-32">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -28 }}>
               <CartesianGrid vertical={false} stroke="hsl(34 24% 85%)" />
@@ -99,8 +99,8 @@ export default function TopicTrendChart() {
           </ResponsiveContainer>
         </div>
       )}
-      <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/80">
-        縦軸は、その時点までの記録で計算した「できた割合」です。上がっていれば克服が進んでいます。
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/70">
+        縦軸はその時点までの「できた割合」。上に伸びれば克服が進んでいます。
       </p>
     </div>
   );

@@ -36,20 +36,20 @@ export default function GrowthChart() {
   const data = useMemo(() => dailySeries(rows || []), [rows]);
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card/50 p-5">
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-medium">学習量と正答率</h3>
-        <span className="font-display text-[11px] text-muted-foreground">全期間</span>
+    <div className="rounded-xl border border-border/70 bg-card/50 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="truncate text-xs font-medium">学習量と正答率</h3>
+        <span className="shrink-0 font-display text-[10px] text-muted-foreground">全期間</span>
       </div>
 
       {rows === null ? (
-        <div className="mt-6 h-40 animate-pulse rounded-lg bg-secondary/50" />
+        <div className="mt-3 h-32 animate-pulse rounded-lg bg-secondary/50" />
       ) : data.length === 0 ? (
-        <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
-          まだ提出の記録がありません。1問解くと、ここに積み上がり方が出ます。
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          まだ記録がありません。1問解くと、ここに積み上がり方が出ます。
         </p>
       ) : (
-        <div className="mt-4 h-48">
+        <div className="mt-3 h-32">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 4, right: -18, bottom: 0, left: -28 }}>
               <CartesianGrid vertical={false} stroke="hsl(34 24% 85%)" />

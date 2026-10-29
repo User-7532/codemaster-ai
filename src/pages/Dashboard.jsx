@@ -248,7 +248,7 @@ export default function Dashboard() {
             くわしく見る
           </Link>
         </div>
-        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <GrowthChart />
           <TopicTrendChart />
         </div>
