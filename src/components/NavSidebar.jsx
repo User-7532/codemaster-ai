@@ -9,9 +9,9 @@ import {
   RotateCcw,
   LineChart,
   Menu,
+  Palette,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import WallpaperPicker from '@/components/WallpaperPicker';
 import { cn } from '@/lib/utils';
 
 const primaryItems = [
@@ -29,6 +29,7 @@ const allItems = [
   { to: '/knowledge', label: '知識モード', icon: BookOpen },
   { to: '/review', label: '復習', icon: RotateCcw },
   { to: '/stats', label: '弱点分析', icon: LineChart },
+  { to: '/appearance', label: '見た目', icon: Palette },
 ];
 
 const extraItems = allItems.filter((i) => !primaryItems.some((p) => p.to === i.to));
@@ -43,7 +44,13 @@ export default function NavSidebar() {
         <NavLink to="/" className="font-display text-lg leading-none tracking-tight text-foreground">
           Code<span className="text-primary">Dojo</span>
         </NavLink>
-        <WallpaperPicker compact />
+        <NavLink
+          to="/appearance"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          title="見た目を変える"
+        >
+          <Palette className="h-3.5 w-3.5" />
+        </NavLink>
       </header>
 
       {/* desktop */}
@@ -79,8 +86,7 @@ export default function NavSidebar() {
           ))}
         </nav>
         <div className="px-5 py-5">
-          <WallpaperPicker />
-          <p className="mt-4 text-[10px] leading-relaxed text-muted-foreground/80">
+          <p className="text-[10px] leading-relaxed text-muted-foreground/80">
             C++ / Python
             <br />
             基礎 → 低レイヤー → 大型テック
@@ -128,10 +134,6 @@ export default function NavSidebar() {
                     {label}
                   </NavLink>
                 ))}
-                <div className="mt-3 border-t border-border/60 px-2 pt-4">
-                  <p className="mb-2 text-[11px] text-muted-foreground">着せ替え（壁紙）</p>
-                  <WallpaperPicker inline />
-                </div>
               </div>
             </SheetContent>
           </Sheet>

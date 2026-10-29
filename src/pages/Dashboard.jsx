@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Target, RotateCcw, Code2, ArrowRight, Sparkles, Timer, BookOpen } from 'lucide-react';
+import { Flame, Target, RotateCcw, Code2, ArrowRight, Sparkles, Timer, BookOpen, Palette } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { todayISO, toISO } from '@/lib/srs';
 import StatCard from '@/components/dashboard/StatCard';
 import StageCard from '@/components/dashboard/StageCard';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
-import WallpaperPicker from '@/components/WallpaperPicker';
 
 const STAGE_META = [
   { step: '01', title: '定石 — 型を体に入れる', subtitle: '二本ポインタ、BFS、再帰など王道の型', tone: 'cyan' },
@@ -108,9 +107,12 @@ export default function Dashboard() {
             型を覚えるより、手を動かして自分でひねり出す。面接で聞かれる順番どおりに、少しずつ積み上げます。
           </p>
         </div>
-        <div className="hidden shrink-0 sm:block">
-          <WallpaperPicker />
-        </div>
+        <Link
+          to="/appearance"
+          className="hidden shrink-0 items-center gap-1.5 rounded-full border border-border/70 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:flex"
+        >
+          <Palette className="h-3.5 w-3.5" /> 見た目
+        </Link>
       </header>
 
       <section className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
