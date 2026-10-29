@@ -14,6 +14,7 @@ const DOMAIN_LABELS = {
   aws: 'AWS',
   cisco: 'Cisco',
   cpp: 'C++',
+  c: 'C',
   python: 'Python',
 };
 

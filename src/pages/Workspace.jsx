@@ -42,7 +42,8 @@ export default function Workspace() {
     base44.entities.Problem.get(problemId)
       .then((p) => {
         setProblem(p);
-        const lang = (p.templates || []).some((t) => t.language === 'cpp') ? 'cpp' : p.templates?.[0]?.language || 'cpp';
+        const templates = p.templates || [];
+        const lang = ['cpp', 'c', 'python'].find((id) => templates.some((t) => t.language === id)) || 'cpp';
         setLanguage(lang);
         setCode(getTemplate(p, lang) || fallbackTemplate(lang));
       })

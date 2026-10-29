@@ -10,6 +10,14 @@ const CPP_KEYWORDS = [
   'begin','end','first','second','make_pair','memset','printf','scanf','malloc','free',
 ];
 
+const C_KEYWORDS = [
+  'int','long','short','unsigned','signed','float','double','char','void','const','static','inline','extern','register','volatile',
+  'struct','union','enum','typedef','sizeof','return','if','else','for','while','do','switch','case','default','break','continue',
+  'goto','NULL','true','false','bool','size_t','FILE','EOF','stdin','stdout',
+  'printf','scanf','fprintf','sprintf','puts','putchar','getchar','fgets','fopen','fclose',
+  'malloc','calloc','realloc','free','memset','memcpy','strlen','strcpy','strncpy','strcmp','strcat',
+];
+
 const PY_KEYWORDS = [
   'def','return','if','elif','else','for','while','in','not','and','or','import','from','as','class','try','except','finally',
   'raise','with','lambda','yield','pass','break','continue','global','nonlocal','assert','del','is','None','True','False',
@@ -18,7 +26,7 @@ const PY_KEYWORDS = [
 ];
 
 const build = (language) => {
-  const kw = (language === 'python' ? PY_KEYWORDS : CPP_KEYWORDS).join('|');
+  const kw = (language === 'python' ? PY_KEYWORDS : language === 'c' ? C_KEYWORDS : CPP_KEYWORDS).join('|');
   if (language === 'python') {
     return new RegExp(
       `(?<str>"""[\\s\\S]*?"""|'''[\\s\\S]*?'''|"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*')` +

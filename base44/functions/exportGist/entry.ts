@@ -19,7 +19,8 @@ export default async function (req) {
     }
 
     const safeName = String(title).replace(/[^\w\-.\u3040-\u30ff\u4e00-\u9faf]+/g, '_').slice(0, 60) || 'solution';
-    const filename = `${safeName}.${language === 'python' ? 'py' : 'cpp'}`;
+    const ext = { python: 'py', c: 'c' }[language] || 'cpp';
+    const filename = `${safeName}.${ext}`;
 
     const res = await fetch('https://api.github.com/gists', {
       method: 'POST',

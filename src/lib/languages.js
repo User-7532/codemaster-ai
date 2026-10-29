@@ -1,5 +1,6 @@
 export const LANGUAGES = [
   { id: 'cpp', label: 'C++', filename: 'solution.cpp' },
+  { id: 'c', label: 'C', filename: 'solution.c' },
   { id: 'python', label: 'Python', filename: 'solution.py' },
 ];
 
@@ -14,5 +15,8 @@ export function getTemplate(problem, languageId) {
 
 export function fallbackTemplate(languageId) {
   if (languageId === 'python') return 'def solve(nums):\n    # ここに書く\n    return None\n';
+  if (languageId === 'c') {
+    return '#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\nint main(void) {\n    // ここに書く\n    return 0;\n}\n';
+  }
   return '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // ここに書く\n    return 0;\n}\n';
 }

@@ -125,7 +125,8 @@ ${spec}
 - 苦手なトピックがあれば、その考え方を使う問題を優先して混ぜる。
 - hints は3段階。1つ目は考え方の方向づけだけ、2つ目は使う道具、3つ目は具体的な手順。答えそのものは書かない。
 - test_cases は境界値を含めて3〜4個。input と expected は簡潔な文字列で書く。
-- templates には cpp と python の両方のひな形（関数シグネチャと空の本体）を入れる。language は "cpp" と "python"。
+- templates には cpp・c・python の3つのひな形（関数シグネチャと空の本体）を入れる。language は "cpp"・"c"・"python"。
+- c のひな形はC言語だけで書く。C++専用の機能（vector、string、cout、<bits/stdc++.h>）は使わず、<stdio.h>・<stdlib.h>・<string.h> と malloc/free で書く。
 - 難しい学術用語は避け、基本情報技術者試験レベルの言葉で書く。`;
 
     const out = await base44.asServiceRole.integrations.Core.InvokeLLM({

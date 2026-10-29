@@ -2,6 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 
 const MAX_CODE = 20000;
 
+const LANG_LABEL = { python: 'Python', c: 'C', cpp: 'C++' };
+const LANG_FENCE = { python: 'python', c: 'c', cpp: 'cpp' };
+
 const GRADE_SCHEMA = {
   type: 'object',
   properties: {
@@ -67,11 +70,11 @@ ${problem.constraints || '特になし'}
 【検証するテストケース】
 ${cases}
 
-【言語】${language === 'python' ? 'Python' : 'C++'}
+【言語】${LANG_LABEL[language] || 'C++'}
 【想定の計算量】${problem.expected_complexity || '指定なし'}
 
 【提出コード】
-\`\`\`${language === 'python' ? 'python' : 'cpp'}
+\`\`\`${LANG_FENCE[language] || 'cpp'}
 ${code}
 \`\`\`
 
@@ -82,6 +85,7 @@ ${code}
 - score は 0〜100 の整数。
 - time_complexity と space_complexity は O(...) の形で書く。
 - issues は「直したほうがいい点」を最大4つ、短い日本語で。
+- 言語が C のときは、C++専用の機能（std::vector、string、cout、<bits/stdc++.h>）が混ざっていればコンパイルエラーとして扱う。malloc した領域の free 忘れや、配列の範囲外アクセスも指摘する。
 - explanation は 250字程度の平易な日本語。基本情報技術者試験レベルの語彙だけを使い、専門用語には短い言い換えを添える。難しい横文字や学術的な言い回しは使わない。
 - ${interviewBlock}`;
 
