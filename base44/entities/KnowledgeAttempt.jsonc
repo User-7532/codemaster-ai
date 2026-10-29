@@ -1,25 +1,39 @@
 {
   "name": "KnowledgeAttempt",
-  "type": "object",
   "properties": {
     "card_id": {
-      "type": "string"
-    },
-    "domain": {
-      "type": "string"
-    },
-    "topic": {
       "type": "string"
     },
     "correct": {
       "type": "boolean"
     },
+    "domain": {
+      "type": "string"
+    },
     "mode": {
+      "type": "string"
+    },
+    "topic": {
       "type": "string"
     }
   },
   "required": [
     "card_id",
     "correct"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    }
+  },
+  "type": "object"
 }
