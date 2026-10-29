@@ -4,6 +4,7 @@ import useAppearance from '@/hooks/use-appearance';
 import BackgroundSection from '@/components/appearance/BackgroundSection';
 import ColorSection from '@/components/appearance/ColorSection';
 import FontSection from '@/components/appearance/FontSection';
+import LogoSection from '@/components/appearance/LogoSection';
 import WobbleSection from '@/components/appearance/WobbleSection';
 
 export default function Appearance() {
@@ -23,6 +24,7 @@ export default function Appearance() {
         <BackgroundSection settings={settings} update={update} />
         <ColorSection settings={settings} update={update} />
         <FontSection settings={settings} update={update} />
+        <LogoSection settings={settings} update={update} />
         <WobbleSection settings={settings} update={update} />
       </div>
     </div>

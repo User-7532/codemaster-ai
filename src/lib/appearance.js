@@ -110,6 +110,57 @@ export const fonts = [
   },
 ];
 
+export const logoFonts = [
+  {
+    id: 'serif',
+    name: '欧文セリフ',
+    note: '静かで品のあるロゴ',
+    stack: "'Cormorant Garamond', 'Shippori Mincho', serif",
+    sample: 'CodeMaster',
+    sampleClass: 'tracking-tight',
+  },
+  {
+    id: 'mincho',
+    name: '明朝',
+    note: '和の落ち着き',
+    stack: "'Shippori Mincho', 'Noto Serif JP', serif",
+    sample: 'CodeMaster',
+    sampleClass: 'tracking-tight',
+  },
+  {
+    id: 'gothic',
+    name: 'ゴシック',
+    note: 'すっきり現代的',
+    stack: "'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif",
+    sample: 'CodeMaster',
+    sampleClass: 'tracking-tight font-medium',
+  },
+  {
+    id: 'maru',
+    name: '丸ゴシック',
+    note: 'やわらかい印象',
+    stack: "'Zen Maru Gothic', 'Noto Sans JP', sans-serif",
+    sample: 'CodeMaster',
+    sampleClass: 'tracking-tight',
+  },
+  {
+    id: 'hand',
+    name: '手書き風',
+    note: 'ノートの見出しのように',
+    stack: "'Klee One', 'Shippori Mincho', serif",
+    sample: 'CodeMaster',
+    sampleClass: 'tracking-tight',
+  },
+  {
+    id: 'mono',
+    name: '等幅',
+    note: 'コードらしい骨格',
+    stack: "'JetBrains Mono', ui-monospace, monospace",
+    sample: 'CodeMaster',
+    sampleClass: 'tracking-tight text-[0.92em]',
+  },
+];
+
 export const wobbles = [
   { id: 'off', name: 'なし', note: '毎日まったく同じ色' },
   { id: 'subtle', name: '控えめ', note: '色味がほんの少しずれる' },
@@ -120,6 +171,8 @@ export const defaultAppearance = {
   background: 'silk',
   accent: 'shu',
   font: 'mincho',
+  logoFont: 'serif',
+  logoText: 'CodeMaster',
   wobble: 'subtle',
   custom: [],
 };
@@ -171,4 +224,7 @@ export function applyAppearance(settings) {
   root.style.setProperty('--font-heading', font.heading);
   root.style.setProperty('--font-body', font.body);
   root.style.setProperty('--font-display', font.display);
+
+  const logo = logoFonts.find((f) => f.id === settings?.logoFont) || logoFonts[0];
+  root.style.setProperty('--font-logo', logo.stack);
 }

@@ -12,6 +12,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import BrandLogo from '@/components/BrandLogo';
 import { cn } from '@/lib/utils';
 
 const primaryItems = [
@@ -41,8 +42,8 @@ export default function NavSidebar() {
     <>
       {/* mobile header */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-2.5 backdrop-blur lg:hidden">
-        <NavLink to="/" className="font-display text-lg leading-none tracking-tight text-foreground">
-          Code<span className="text-primary">Dojo</span>
+        <NavLink to="/" className="flex items-center">
+          <BrandLogo className="text-lg leading-none" />
         </NavLink>
         <NavLink
           to="/appearance"
@@ -56,8 +57,8 @@ export default function NavSidebar() {
       {/* desktop */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/70 backdrop-blur lg:flex">
         <div className="px-5 pb-6 pt-7">
-          <p className="font-display text-xl leading-none tracking-tight text-foreground">
-            Code<span className="text-primary">Dojo</span>
+          <p className="leading-none">
+            <BrandLogo className="text-xl leading-none" />
           </p>
           <p className="mt-2 text-[11px] tracking-wide text-muted-foreground">面接のための、手を動かす道場</p>
         </div>
