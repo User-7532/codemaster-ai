@@ -10,6 +10,8 @@ export default async function (req) {
     if (code.length > MAX_CODE) return Response.json({ error: 'コードが長すぎます' }, { status: 400 });
 
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const conn = await base44.asServiceRole.connectors.getConnection('github').catch(() => null);
     if (!conn || !conn.accessToken) {

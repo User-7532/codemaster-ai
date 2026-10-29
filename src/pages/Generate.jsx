@@ -4,6 +4,7 @@ import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { LANGUAGES } from '@/lib/languages';
+import { topicWeakness } from '@/lib/insights';
 
 const DIFFICULTIES = [
   { id: 'basic', label: '基礎', desc: '定石の型をそのまま使う' },
@@ -30,23 +31,9 @@ export default function Generate() {
       setRecent(page.items);
       setExistingTitles(page.items.map((p) => p.title));
     });
-    base44.entities.Submission.list({ sort: '-created_date', limit: 100 }).then((page) => {
-      const acc = {};
-      page.items.forEach((s) => {
-        (s.topics || []).forEach((t) => {
-          acc[t] = acc[t] || { total: 0, wrong: 0 };
-          acc[t].total += 1;
-          if (s.verdict !== 'correct') acc[t].wrong += 1;
-        });
-      });
-      setWeakTopics(
-        Object.entries(acc)
-          .filter(([, v]) => v.total >= 2)
-          .sort((a, b) => b[1].wrong / b[1].total - a[1].wrong / a[1].total)
-          .slice(0, 4)
-          .map(([t]) => t)
-      );
-    });
+    base44.entities.Submission.list({ sort: '-created_date', limit: 100 }).then((page) =>
+      setWeakTopics(topicWeakness(page.items, { minTotal: 2, limit: 4 }).map((t) => t.topic))
+    );
   }, []);
 
   const generate = async () => {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Flame, Target, RotateCcw, Code2, ArrowRight, Sparkles, Timer, BookOpen, Palette } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { todayISO, toISO } from '@/lib/srs';
+import { topicWeakness } from '@/lib/insights';
 import StatCard from '@/components/dashboard/StatCard';
 import StageCard from '@/components/dashboard/StageCard';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
@@ -56,15 +57,6 @@ export default function Dashboard() {
     const solvedIds = new Set(list.filter((s) => s.verdict === 'correct').map((s) => s.problem_id));
     const attemptedIds = new Set(list.map((s) => s.problem_id));
 
-    const topics = {};
-    list.forEach((s) => {
-      (s.topics || []).forEach((t) => {
-        topics[t] = topics[t] || { total: 0, wrong: 0 };
-        topics[t].total += 1;
-        if (s.verdict !== 'correct') topics[t].wrong += 1;
-      });
-    });
-
     const today = todayISO();
     const due = reviews.filter((r) => r.due_date <= today);
 
@@ -75,11 +67,7 @@ export default function Dashboard() {
       solvedIds,
       attemptedIds,
       due,
-      weak: Object.entries(topics)
-        .map(([topic, v]) => ({ topic, ...v }))
-        .filter((t) => t.total >= 1)
-        .sort((a, b) => b.wrong / b.total - a.wrong / a.total)
-        .slice(0, 4),
+      weak: topicWeakness(list, { limit: 4 }),
     };
   }, [subs, reviews]);
 

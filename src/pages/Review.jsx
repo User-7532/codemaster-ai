@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarClock, Flame, Layers, Loader2, Shuffle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { recordReview, todayISO } from '@/lib/srs';
+import { todayISO } from '@/lib/srs';
+import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import ClozeCard from '@/components/knowledge/ClozeCard';
 
 const TABS = [
@@ -58,7 +59,11 @@ export default function Review() {
       .map(([id, v]) => ({ id, ...v, rate: Math.round((v.wrong / v.total) * 100) }));
   }, [subs]);
 
+  const mixableCount =
+    due.filter((i) => i.item_type === 'knowledge' && cards[i.item_id]).length + weakProblems.length;
+
   const startMixed = () => {
+    if (mixableCount === 0) return;
     const queue = [
       ...due
         .filter((i) => i.item_type === 'knowledge' && cards[i.item_id])
@@ -73,20 +78,7 @@ export default function Review() {
 
   const answerKnowledge = (correct) => {
     const current = session[idx];
-    base44.entities.KnowledgeAttempt.create({
-      card_id: current.card.id,
-      domain: current.card.domain,
-      topic: current.card.topic || '',
-      correct,
-      mode: 'mixed',
-    }).catch(() => {});
-    recordReview({
-      item_type: 'knowledge',
-      item_id: current.card.id,
-      title: current.card.topic || current.card.answer,
-      topic: current.card.domain,
-      correct,
-    }).catch(() => {});
+    recordKnowledgeAnswer(current.card, correct, 'mixed');
     setRevealed(false);
     setIdx((i) => i + 1);
   };
@@ -174,10 +166,16 @@ export default function Review() {
               <button
                 type="button"
                 onClick={startMixed}
-                className="mt-4 rounded-lg bg-primary px-4 py-2 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                disabled={mixableCount === 0}
+                className="mt-4 rounded-lg bg-primary px-4 py-2 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 セッションを始める
               </button>
+              {mixableCount === 0 && (
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  いま混ぜられる項目がありません。1問解くと復習の対象ができます。
+                </p>
+              )}
             </div>
           ) : !current ? (
             <div className="rounded-xl border border-border/60 bg-card/40 p-8 text-center">

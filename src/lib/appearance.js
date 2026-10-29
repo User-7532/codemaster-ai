@@ -215,6 +215,8 @@ export function applyAppearance(settings) {
   const shifted = rotateHue(accent.hsl, dayShift(settings?.wobble));
 
   root.style.setProperty('--primary', shifted);
+  root.style.setProperty('--primary-foreground', accent.fg);
+  root.style.setProperty('--sidebar-primary-foreground', accent.fg);
   root.style.setProperty('--ring', shifted);
   root.style.setProperty('--chart-1', shifted);
   root.style.setProperty('--sidebar-primary', shifted);

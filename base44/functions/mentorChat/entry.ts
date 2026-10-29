@@ -10,6 +10,8 @@ export default async function (req) {
     }
 
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     let problemBlock = '（問題の指定なし。直前の採点結果について話す）';
     if (problem_id) {

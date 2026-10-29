@@ -1,0 +1,36 @@
+{
+  "name": "AssistantMessage",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "\u767a\u8a00\u8005"
+    },
+    "content": {
+      "type": "string",
+      "description": "\u767a\u8a00\u5185\u5bb9"
+    }
+  },
+  "required": [
+    "role",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

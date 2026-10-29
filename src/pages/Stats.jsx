@@ -5,6 +5,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } fro
 import { base44 } from '@/api/base44Client';
 import VerdictBadge from '@/components/VerdictBadge';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
+import { topicWeakness } from '@/lib/insights';
 
 const dayKey = (d) => {
   const dt = new Date(d);
@@ -23,18 +24,7 @@ export default function Stats() {
   const summary = useMemo(() => {
     const list = subs || [];
     const correct = list.filter((s) => s.verdict === 'correct').length;
-    const topics = {};
-    list.forEach((s) => {
-      (s.topics || []).forEach((t) => {
-        topics[t] = topics[t] || { total: 0, wrong: 0 };
-        topics[t].total += 1;
-        if (s.verdict !== 'correct') topics[t].wrong += 1;
-      });
-    });
-    const topicRows = Object.entries(topics)
-      .filter(([, v]) => v.total > 0)
-      .map(([topic, v]) => ({ topic, ...v, rate: Math.round((v.wrong / v.total) * 100) }))
-      .sort((a, b) => b.rate - a.rate);
+    const topicRows = topicWeakness(list, { limit: 50 });
 
     const days = {};
     const now = new Date();

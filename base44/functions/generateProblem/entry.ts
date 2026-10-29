@@ -57,6 +57,8 @@ export default async function (req) {
     } = body;
 
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const prompt = `あなたは技術面接の出題者です。C++とPythonの両方で解けるプログラミング問題を1問作ってください。
 

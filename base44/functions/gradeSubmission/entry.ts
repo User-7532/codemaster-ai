@@ -38,6 +38,8 @@ export default async function (req) {
     if (code.length > MAX_CODE) return Response.json({ error: 'コードが長すぎます' }, { status: 400 });
 
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const problem = await base44.entities.Problem.get(problem_id).catch((e) =>
       e.status === 404 ? null : Promise.reject(e)

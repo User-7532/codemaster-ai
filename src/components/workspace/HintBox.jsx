@@ -15,7 +15,7 @@ export default function HintBox({ hints, loading, onReveal, disabled }) {
             type="button"
             onClick={onReveal}
             disabled={loading || disabled}
-            className="flex items-center gap-1.5 rounded-full border border-border/80 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:border-amber-400/40 hover:text-amber-200 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-full border border-border/80 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:border-amber-500/40 hover:text-amber-700 disabled:opacity-50"
           >
             {loading && <Loader2 className="h-3 w-3 animate-spin" />}
             {hints.length === 0 ? 'ヒントを見る' : 'もう少しヒント'}

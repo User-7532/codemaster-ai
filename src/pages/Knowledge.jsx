@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Check, Loader2, RotateCcw, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { recordReview } from '@/lib/srs';
+import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import ClozeCard from '@/components/knowledge/ClozeCard';
 
 const DOMAINS = [
@@ -51,20 +51,7 @@ export default function Knowledge() {
   const answer = (correct) => {
     if (!current) return;
     setTally((t) => ({ correct: t.correct + (correct ? 1 : 0), wrong: t.wrong + (correct ? 0 : 1) }));
-    base44.entities.KnowledgeAttempt.create({
-      card_id: current.id,
-      domain: current.domain,
-      topic: current.topic || '',
-      correct,
-      mode: 'knowledge',
-    }).catch(() => {});
-    recordReview({
-      item_type: 'knowledge',
-      item_id: current.id,
-      title: current.topic || current.answer,
-      topic: current.domain,
-      correct,
-    }).catch(() => {});
+    recordKnowledgeAnswer(current, correct, 'knowledge');
     setRevealed(false);
     setIdx((i) => i + 1);
   };
