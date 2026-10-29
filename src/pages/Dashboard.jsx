@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Target, RotateCcw, Code2, ArrowRight, Sparkles, Timer, BookOpen, Palette } from 'lucide-react';
+import { Flame, Target, RotateCcw, Code2, ArrowRight, Sparkles, Timer, BookOpen, Palette, BarChart3 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { todayISO, toISO } from '@/lib/srs';
 import { topicWeakness } from '@/lib/insights';
@@ -16,9 +16,11 @@ const STAGE_META = [
 
 const QUICK = [
   { to: '/curriculum', label: '問題を1問解く', icon: Code2 },
+  { to: '/review', label: '復習する', icon: RotateCcw },
   { to: '/generate', label: 'AIに問題を作ってもらう', icon: Sparkles },
   { to: '/interview', label: '模擬面接（時間制限つき）', icon: Timer },
   { to: '/knowledge', label: '穴埋めで暗記', icon: BookOpen },
+  { to: '/stats', label: '弱点分析を見る', icon: BarChart3 },
 ];
 
 function streakOf(submissions) {
