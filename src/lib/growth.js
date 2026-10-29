@@ -46,7 +46,7 @@ export function topicTrends(subs, { limit = 4, minTotal = 2 } = {}) {
 
   const running = {};
   topics.forEach((t) => {
-    running[t] = { total: 0, wrong: 0 };
+    running[t] = { total: 0, correct: 0 };
   });
 
   const data = [];
@@ -55,11 +55,11 @@ export function topicTrends(subs, { limit = 4, minTotal = 2 } = {}) {
     if (!hit.length) return;
     hit.forEach((t) => {
       running[t].total += 1;
-      if (s.verdict !== 'correct') running[t].wrong += 1;
+      if (s.verdict === 'correct') running[t].correct += 1;
     });
     const point = { label: dayLabel(s.created_date) };
     topics.forEach((t) => {
-      if (running[t].total) point[t] = Math.round((running[t].wrong / running[t].total) * 100);
+      if (running[t].total) point[t] = Math.round((running[t].correct / running[t].total) * 100);
     });
     data.push(point);
   });

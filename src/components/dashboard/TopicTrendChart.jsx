@@ -53,7 +53,7 @@ export default function TopicTrendChart() {
   return (
     <div className="rounded-xl border border-border/70 bg-card/50 p-5">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-medium">苦手の克服ペース（累積の誤答率）</h3>
+        <h3 className="text-sm font-medium">苦手の克服ペース（できた割合）</h3>
         <span className="font-display text-[11px] text-muted-foreground">全期間</span>
       </div>
 
@@ -61,7 +61,7 @@ export default function TopicTrendChart() {
         <div className="mt-6 h-40 animate-pulse rounded-lg bg-secondary/50" />
       ) : topics.length === 0 ? (
         <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
-          同じトピックを2回以上解くと、誤答率が下がっていく様子がここに出ます。
+          同じトピックを2回以上解くと、できた割合が伸びていく様子がここに出ます。
         </p>
       ) : (
         <div className="mt-4 h-48">
@@ -100,7 +100,7 @@ export default function TopicTrendChart() {
         </div>
       )}
       <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/80">
-        縦軸は、その時点までの記録で計算した誤答率です。下がっていれば克服が進んでいます。
+        縦軸は、その時点までの記録で計算した「できた割合」です。上がっていれば克服が進んでいます。
       </p>
     </div>
   );
