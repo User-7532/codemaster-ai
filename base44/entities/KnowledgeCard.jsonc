@@ -1,38 +1,52 @@
 {
   "name": "KnowledgeCard",
-  "type": "object",
   "properties": {
-    "domain": {
-      "type": "string",
-      "description": "aws / cisco / security / cpp / python \u306a\u3069"
-    },
-    "topic": {
+    "answer": {
+      "description": "\u7a7a\u6240\u306b\u5165\u308b\u8a9e\u53e5",
       "type": "string"
     },
-    "text": {
-      "type": "string",
-      "description": "\u7a74\u57cb\u3081\u5bfe\u8c61\u3092\u542b\u3080\u6587\u7ae0\u3002\u7a7a\u6240\u306f ___ \u3067\u8868\u3059"
-    },
-    "answer": {
-      "type": "string",
-      "description": "\u7a7a\u6240\u306b\u5165\u308b\u8a9e\u53e5"
-    },
-    "explanation": {
-      "type": "string",
-      "description": "\u5e73\u6613\u306a\u89e3\u8aac"
-    },
     "difficulty": {
-      "type": "string",
       "enum": [
         "basic",
         "intermediate",
         "advanced"
-      ]
+      ],
+      "type": "string"
+    },
+    "domain": {
+      "description": "aws / cisco / security / cpp / python \u306a\u3069",
+      "type": "string"
+    },
+    "explanation": {
+      "description": "\u5e73\u6613\u306a\u89e3\u8aac",
+      "type": "string"
+    },
+    "text": {
+      "description": "\u7a74\u57cb\u3081\u5bfe\u8c61\u3092\u542b\u3080\u6587\u7ae0\u3002\u7a7a\u6240\u306f ___ \u3067\u8868\u3059",
+      "type": "string"
+    },
+    "topic": {
+      "type": "string"
     }
   },
   "required": [
     "domain",
     "text",
     "answer"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    }
+  },
+  "type": "object"
 }
