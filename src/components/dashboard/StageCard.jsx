@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -7,12 +8,13 @@ const tones = {
   rose: { dot: 'bg-rose-600', bar: 'bg-rose-600/80', text: 'text-rose-800' },
 };
 
-export default function StageCard({ step, title, subtitle, solved, total, tone }) {
+export default function StageCard({ step, title, subtitle, solved, total, tone, to }) {
   const t = tones[tone];
   const pct = total ? Math.round((solved / total) * 100) : 0;
+  const base = 'block rounded-xl border border-border/70 bg-card/60 p-4 transition-colors';
 
-  return (
-    <div className="rounded-xl border border-border/70 bg-card/60 p-4 transition-colors hover:border-border">
+  const body = (
+    <>
       <div className="flex items-center gap-2">
         <span className={cn('h-1.5 w-1.5 rounded-full', t.dot)} />
         <span className="font-display text-[11px] tracking-widest text-muted-foreground">STEP {step}</span>
@@ -31,6 +33,14 @@ export default function StageCard({ step, title, subtitle, solved, total, tone }
           <div className={cn('h-full rounded-full transition-all', t.bar)} style={{ width: `${pct}%` }} />
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  if (!to) return <div className={cn(base, 'hover:border-border')}>{body}</div>;
+
+  return (
+    <Link to={to} className={cn(base, 'hover:border-primary/40')}>
+      {body}
+    </Link>
   );
 }

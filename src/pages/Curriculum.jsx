@@ -17,12 +17,18 @@ const FILTERS = [
   { id: 'intermediate', label: '中級' },
   { id: 'advanced', label: '上級' },
   { id: 'todo', label: '未着手' },
+  { id: 'solved', label: '正解済み' },
 ];
 
 export default function Curriculum() {
   const [problems, setProblems] = useState(null);
   const [subs, setSubs] = useState([]);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState(
+    () => new URLSearchParams(window.location.search).get('filter') || 'all'
+  );
+  const [stage, setStage] = useState(
+    () => Number(new URLSearchParams(window.location.search).get('stage')) || 0
+  );
 
   const load = useCallback(() => {
     base44.entities.Problem.filter({ source: 'curriculum' }, { sort: 'order_index', limit: 200 }).then((page) =>
@@ -48,8 +54,10 @@ export default function Curriculum() {
   }, [subs]);
 
   const visible = (problems || []).filter((p) => {
+    if (stage && (p.stage || 1) !== stage) return false;
     if (filter === 'all') return true;
     if (filter === 'todo') return !statusOf[p.id];
+    if (filter === 'solved') return statusOf[p.id] === 'correct';
     return p.difficulty === filter;
   });
 
@@ -90,6 +98,32 @@ export default function Curriculum() {
             }`}
           >
             {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setStage(0)}
+          className={`rounded-full px-3 py-1 text-[11px] transition-colors ${
+            stage === 0 ? 'text-muted-foreground' : 'text-muted-foreground/60 hover:text-foreground'
+          }`}
+        >
+          全ステップ
+        </button>
+        {STAGE_META.map((m) => (
+          <button
+            key={m.stage}
+            type="button"
+            onClick={() => setStage(m.stage)}
+            className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${
+              stage === m.stage
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            STEP {m.stage}
           </button>
         ))}
       </div>

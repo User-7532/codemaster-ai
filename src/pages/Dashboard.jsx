@@ -76,6 +76,7 @@ export default function Dashboard() {
     const list = problems.filter((p) => (p.stage || 1) === stage);
     return {
       ...meta,
+      stage,
       total: list.length,
       solved: list.filter((p) => data.solvedIds.has(p.id)).length,
     };
@@ -111,6 +112,7 @@ export default function Dashboard() {
           unit="日"
           hint={data.streak === 0 ? '今日から始めよう' : data.streak >= 3 ? 'いい流れです' : 'あと少しで習慣に'}
           tone="primary"
+          to="/stats"
         />
         <StatCard
           icon={Target}
@@ -119,6 +121,7 @@ export default function Dashboard() {
           unit="%"
           hint={`今週 ${data.weeklyCount} 回提出`}
           tone="mint"
+          to="/stats"
         />
         <StatCard
           icon={RotateCcw}
@@ -127,6 +130,7 @@ export default function Dashboard() {
           unit="問"
           hint={data.due.length ? '今日のうちに' : '復習は片付いています'}
           tone="amber"
+          to="/review"
         />
         <StatCard
           icon={Code2}
@@ -135,6 +139,7 @@ export default function Dashboard() {
           unit="問"
           hint={`正解 ${data.solvedIds.size} 問`}
           tone="violet"
+          to="/curriculum?filter=solved"
         />
       </section>
 
@@ -148,7 +153,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {stageStats.map((s) => (
-              <StageCard key={s.step} {...s} />
+              <StageCard key={s.step} {...s} to={`/curriculum?stage=${s.stage}`} />
             ))}
           </div>
 
@@ -166,7 +171,7 @@ export default function Dashboard() {
             ) : (
               <div className="mt-4 space-y-3">
                 {data.weak.map((w) => (
-                  <WeaknessBar key={w.topic} {...w} />
+                  <WeaknessBar key={w.topic} {...w} to={`/generate?topic=${encodeURIComponent(w.topic)}`} />
                 ))}
               </div>
             )}

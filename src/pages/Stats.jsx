@@ -7,6 +7,16 @@ import VerdictBadge from '@/components/VerdictBadge';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
 import { topicWeakness } from '@/lib/insights';
 
+const DOMAIN_LABELS = {
+  ap: '応用情報',
+  osi: 'OSIモデル',
+  security: 'セキスペ',
+  aws: 'AWS',
+  cisco: 'Cisco',
+  cpp: 'C++',
+  python: 'Python',
+};
+
 const dayKey = (d) => {
   const dt = new Date(d);
   return `${dt.getMonth() + 1}/${dt.getDate()}`;
@@ -80,18 +90,22 @@ export default function Stats() {
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: '提出回数', value: summary.total, unit: '回' },
-          { label: '正答率', value: summary.accuracy, unit: '%' },
-          { label: '正解', value: summary.correct, unit: '問' },
-          { label: '知識カード', value: attempts.length, unit: '回' },
+          { label: '提出回数', value: summary.total, unit: '回', to: '/curriculum' },
+          { label: '正答率', value: summary.accuracy, unit: '%', to: '/curriculum' },
+          { label: '正解', value: summary.correct, unit: '問', to: '/curriculum?filter=solved' },
+          { label: '知識カード', value: attempts.length, unit: '回', to: '/knowledge' },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-border/60 bg-card/50 p-4">
+          <Link
+            key={s.label}
+            to={s.to}
+            className="rounded-xl border border-border/60 bg-card/50 p-4 transition-colors hover:border-primary/40"
+          >
             <p className="text-[11px] text-muted-foreground">{s.label}</p>
             <p className="mt-2 font-display text-xl leading-none">
               {s.value}
               <span className="ml-1 text-[10px] font-body text-muted-foreground">{s.unit}</span>
             </p>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -128,7 +142,13 @@ export default function Stats() {
           ) : (
             <div className="mt-4 space-y-3">
               {summary.topicRows.slice(0, 7).map((t) => (
-                <WeaknessBar key={t.topic} topic={t.topic} wrong={t.wrong} total={t.total} />
+                <WeaknessBar
+                  key={t.topic}
+                  topic={t.topic}
+                  wrong={t.wrong}
+                  total={t.total}
+                  to={`/generate?topic=${encodeURIComponent(t.topic)}`}
+                />
               ))}
             </div>
           )}
@@ -143,14 +163,21 @@ export default function Stats() {
           ) : (
             <ul className="mt-4 space-y-2.5">
               {summary.domainRows.map((d) => (
-                <li key={d.domain} className="flex items-center gap-3">
-                  <span className="w-20 shrink-0 text-[11px] text-muted-foreground">{d.domain}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-                    <div className="h-full rounded-full bg-teal-400" style={{ width: `${d.rate}%` }} />
-                  </div>
-                  <span className="w-12 shrink-0 text-right font-display text-[11px] text-muted-foreground">
-                    {d.rate}% / {d.total}
-                  </span>
+                <li key={d.domain}>
+                  <Link
+                    to={`/knowledge?domain=${d.domain}`}
+                    className="flex items-center gap-3 rounded-lg transition-colors hover:bg-accent/40"
+                  >
+                    <span className="w-20 shrink-0 text-[11px] text-muted-foreground">
+                      {DOMAIN_LABELS[d.domain] || d.domain}
+                    </span>
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-teal-400" style={{ width: `${d.rate}%` }} />
+                    </div>
+                    <span className="w-12 shrink-0 text-right font-display text-[11px] text-muted-foreground">
+                      {d.rate}% / {d.total}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

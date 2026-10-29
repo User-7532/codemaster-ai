@@ -6,11 +6,23 @@ import ClozeCard from '@/components/knowledge/ClozeCard';
 
 const DOMAINS = [
   { id: 'all', label: 'すべて' },
+  { id: 'ap', label: '応用情報' },
+  { id: 'osi', label: 'OSIモデル' },
+  { id: 'security', label: 'セキスペ' },
   { id: 'aws', label: 'AWS' },
   { id: 'cisco', label: 'Cisco' },
-  { id: 'security', label: 'セキュリティ' },
   { id: 'cpp', label: 'C++' },
   { id: 'python', label: 'Python' },
+];
+
+const OSI_LAYERS = [
+  '物理層',
+  'データリンク層',
+  'ネットワーク層',
+  'トランスポート層',
+  'セッション層',
+  'プレゼンテーション層',
+  'アプリケーション層',
 ];
 
 const shuffle = (arr) => {
@@ -24,7 +36,9 @@ const shuffle = (arr) => {
 
 export default function Knowledge() {
   const [cards, setCards] = useState(null);
-  const [domain, setDomain] = useState('all');
+  const [domain, setDomain] = useState(
+    () => new URLSearchParams(window.location.search).get('domain') || 'all'
+  );
   const [order, setOrder] = useState([]);
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -34,9 +48,17 @@ export default function Knowledge() {
     base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 300 }).then((page) => setCards(page.items));
   }, []);
 
+  const [layer, setLayer] = useState('all');
+
   const filtered = useMemo(
-    () => (cards || []).filter((c) => domain === 'all' || c.domain === domain),
-    [cards, domain]
+    () =>
+      (cards || []).filter((c) => {
+        if (domain === 'all') return true;
+        if (c.domain !== domain) return false;
+        if (domain === 'osi' && layer !== 'all') return c.topic === layer;
+        return true;
+      }),
+    [cards, domain, layer]
   );
 
   useEffect(() => {
@@ -87,6 +109,36 @@ export default function Knowledge() {
           </button>
         ))}
       </div>
+
+      {domain === 'osi' && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2.5">
+          <button
+            type="button"
+            onClick={() => setLayer('all')}
+            className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+              layer === 'all'
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            すべての層
+          </button>
+          {OSI_LAYERS.map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLayer(l)}
+              className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                layer === l
+                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!cards ? (
         <div className="flex justify-center py-20">

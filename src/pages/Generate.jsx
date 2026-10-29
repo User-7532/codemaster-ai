@@ -18,7 +18,7 @@ export default function Generate() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [request, setRequest] = useState('');
-  const [topic, setTopic] = useState('');
+  const [topic, setTopic] = useState(() => new URLSearchParams(window.location.search).get('topic') || '');
   const [difficulty, setDifficulty] = useState('intermediate');
   const [language, setLanguage] = useState('cpp');
   const [weakTopics, setWeakTopics] = useState([]);
