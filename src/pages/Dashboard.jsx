@@ -7,6 +7,8 @@ import { topicWeakness } from '@/lib/insights';
 import StatCard from '@/components/dashboard/StatCard';
 import StageCard from '@/components/dashboard/StageCard';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
+import GrowthChart from '@/components/dashboard/GrowthChart';
+import TopicTrendChart from '@/components/dashboard/TopicTrendChart';
 
 const STAGE_META = [
   { step: '01', title: '定石 — 型を体に入れる', subtitle: '二本ポインタ、BFS、再帰など王道の型', tone: 'cyan' },
@@ -236,6 +238,19 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-medium">これまでの成長</h2>
+          <Link to="/stats" className="text-[11px] text-muted-foreground hover:text-foreground">
+            くわしく見る
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <GrowthChart />
+          <TopicTrendChart />
         </div>
       </section>
     </div>
