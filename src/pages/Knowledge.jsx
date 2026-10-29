@@ -11,7 +11,7 @@ const DOMAINS = [
   { id: 'security', label: 'セキスペ' },
   { id: 'aws', label: 'AWS' },
   { id: 'cisco', label: 'Cisco' },
-  { id: 'cpp', label: 'C++' },
+  { id: 'cpp', label: 'C系' },
   { id: 'python', label: 'Python' },
 ];
 

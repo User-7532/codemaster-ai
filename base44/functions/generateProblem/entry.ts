@@ -77,7 +77,8 @@ export default async function (req) {
 - c のひな形はC言語だけで書く。C++専用の機能（vector、string、cout、<bits/stdc++.h>）は使わず、<stdio.h>・<stdlib.h>・<string.h> と malloc/free で書く。
 - main 言語が C の場合は、メモリの確保と解放、文字列や配列の扱いを素手で書く形にする（標準ライブラリの便利な関数に頼りすぎない）。
 - explanation などの解説文はまだ書かない。
-- 難しい学術用語は避け、基本情報技術者試験レベルの言葉で書く。`;
+- 問題文・制約・ヒントは、プログラミングを学び始めた人でも読めるやさしい日本語で書く。カタカナの横文字は、日本語に言い換えられるものは必ず日本語にする（例: データ→中身、チェック→確認、アルゴリズム→解き方の手順、シグネチャ→引数と戻り値の形、パフォーマンス→速さ、ケース→場合）。
+- どうしても必要な専門用語（配列、探索、再帰など）は、初めて出てくるところに短い言い換えを添える。`;
 
     const generated = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,

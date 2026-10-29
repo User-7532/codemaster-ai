@@ -86,7 +86,7 @@ ${code}
 - time_complexity と space_complexity は O(...) の形で書く。
 - issues は「直したほうがいい点」を最大4つ、短い日本語で。
 - 言語が C のときは、C++専用の機能（std::vector、string、cout、<bits/stdc++.h>）が混ざっていればコンパイルエラーとして扱う。malloc した領域の free 忘れや、配列の範囲外アクセスも指摘する。
-- explanation は 250字程度の平易な日本語。基本情報技術者試験レベルの語彙だけを使い、専門用語には短い言い換えを添える。難しい横文字や学術的な言い回しは使わない。
+- explanation は 250字程度の平易な日本語。基本情報技術者試験レベルの語彙だけを使い、専門用語には短い言い換えを添える。難しい横文字や学術的な言い回しは使わない。カタカナ語は日本語に置き換える（例: データ→中身、チェック→確認、アルゴリズム→解き方の手順、パフォーマンス→速さ、ミス→間違い）。
 - ${interviewBlock}`;
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({

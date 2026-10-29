@@ -13,7 +13,7 @@ const DOMAIN_LABELS = {
   security: 'セキスペ',
   aws: 'AWS',
   cisco: 'Cisco',
-  cpp: 'C++',
+  cpp: 'C系',
   c: 'C',
   python: 'Python',
 };

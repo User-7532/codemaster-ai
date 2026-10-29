@@ -127,7 +127,7 @@ ${spec}
 - test_cases は境界値を含めて3〜4個。input と expected は簡潔な文字列で書く。
 - templates には cpp・c・python の3つのひな形（関数シグネチャと空の本体）を入れる。language は "cpp"・"c"・"python"。
 - c のひな形はC言語だけで書く。C++専用の機能（vector、string、cout、<bits/stdc++.h>）は使わず、<stdio.h>・<stdlib.h>・<string.h> と malloc/free で書く。
-- 難しい学術用語は避け、基本情報技術者試験レベルの言葉で書く。`;
+- 問題文・制約・ヒントは、プログラミングを学び始めた人でも読めるやさしい日本語で書く。カタカナの横文字は、日本語に言い換えられるものは必ず日本語にする（例: データ→中身、チェック→確認、アルゴリズム→解き方の手順、シグネチャ→引数と戻り値の形、パフォーマンス→速さ、ケース→場合）。必要な専門用語には短い言い換えを添える。`;
 
     const out = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
