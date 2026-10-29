@@ -10,10 +10,10 @@ import WeaknessBar from '@/components/dashboard/WeaknessBar';
 import GrowthChart from '@/components/dashboard/GrowthChart';
 import TopicTrendChart from '@/components/dashboard/TopicTrendChart';
 
-const STAGE_META = [
-  { step: '01', title: '定石 — 型を体に入れる', subtitle: '二本ポインタ、BFS、再帰など王道の型', tone: 'cyan' },
-  { step: '02', title: '低レイヤー中級', subtitle: 'メモリ・ポインタ・計算量の感覚を問う問題', tone: 'amber' },
-  { step: '03', title: '大型テック級', subtitle: '時間内に設計まで語る面接水準の問題', tone: 'rose' },
+const DIFF_META = [
+  { key: 'basic', label: '基礎', title: '型を体に入れる', subtitle: '二本ポインタ、BFS、再帰など王道の型', tone: 'cyan' },
+  { key: 'intermediate', label: '中級', title: '中で起きていること', subtitle: 'メモリ・ポインタ・計算量の感覚を問う問題', tone: 'amber' },
+  { key: 'advanced', label: '上級', title: '大型テック級', subtitle: '時間内に設計まで語る面接水準の問題', tone: 'rose' },
 ];
 
 const QUICK = [
@@ -75,12 +75,10 @@ export default function Dashboard() {
     };
   }, [subs, reviews]);
 
-  const stageStats = STAGE_META.map((meta, i) => {
-    const stage = i + 1;
-    const list = problems.filter((p) => (p.stage || 1) === stage);
+  const diffStats = DIFF_META.map((meta) => {
+    const list = problems.filter((p) => p.difficulty === meta.key);
     return {
       ...meta,
-      stage,
       total: list.length,
       solved: list.filter((p) => data.solvedIds.has(p.id)).length,
     };
@@ -156,8 +154,8 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            {stageStats.map((s) => (
-              <StageCard key={s.step} {...s} to={`/curriculum?stage=${s.stage}`} />
+            {diffStats.map((s) => (
+              <StageCard key={s.key} {...s} to={`/curriculum?filter=${s.key}`} />
             ))}
           </div>
 

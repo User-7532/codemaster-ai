@@ -5,10 +5,10 @@ import { base44 } from '@/api/base44Client';
 import DifficultyBadge from '@/components/DifficultyBadge';
 import CurriculumAdvisor from '@/components/curriculum/CurriculumAdvisor';
 
-const STAGE_META = [
-  { stage: 1, title: 'STEP 1 — 定石', desc: '型を体に入れる（配列・文字列・探索）', tone: 'bg-cyan-400' },
-  { stage: 2, title: 'STEP 2 — 低レイヤー中級', desc: '中で何が起きているかを意識する（メモリ・ビット）', tone: 'bg-amber-400' },
-  { stage: 3, title: 'STEP 3 — 大型テック級', desc: '設計と説明まで問われる水準', tone: 'bg-rose-400' },
+const DIFF_META = [
+  { key: 'basic', title: '基礎', desc: '型を体に入れる（配列・文字列・探索）', tone: 'bg-cyan-400' },
+  { key: 'intermediate', title: '中級', desc: '中で何が起きているかを意識する（メモリ・ビット）', tone: 'bg-amber-400' },
+  { key: 'advanced', title: '上級', desc: '設計と説明まで問われる水準', tone: 'bg-rose-400' },
 ];
 
 const FILTERS = [
@@ -25,9 +25,6 @@ export default function Curriculum() {
   const [subs, setSubs] = useState([]);
   const [filter, setFilter] = useState(
     () => new URLSearchParams(window.location.search).get('filter') || 'all'
-  );
-  const [stage, setStage] = useState(
-    () => Number(new URLSearchParams(window.location.search).get('stage')) || 0
   );
 
   const load = useCallback(() => {
@@ -54,7 +51,6 @@ export default function Curriculum() {
   }, [subs]);
 
   const visible = (problems || []).filter((p) => {
-    if (stage && (p.stage || 1) !== stage) return false;
     if (filter === 'all') return true;
     if (filter === 'todo') return !statusOf[p.id];
     if (filter === 'solved') return statusOf[p.id] === 'correct';
@@ -102,44 +98,18 @@ export default function Curriculum() {
         ))}
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => setStage(0)}
-          className={`rounded-full px-3 py-1 text-[11px] transition-colors ${
-            stage === 0 ? 'text-muted-foreground' : 'text-muted-foreground/60 hover:text-foreground'
-          }`}
-        >
-          全ステップ
-        </button>
-        {STAGE_META.map((m) => (
-          <button
-            key={m.stage}
-            type="button"
-            onClick={() => setStage(m.stage)}
-            className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${
-              stage === m.stage
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            STEP {m.stage}
-          </button>
-        ))}
-      </div>
-
       {!problems ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <div className="mt-6 space-y-8">
-          {STAGE_META.map((meta) => {
-            const list = visible.filter((p) => (p.stage || 1) === meta.stage);
+          {DIFF_META.map((meta) => {
+            const list = visible.filter((p) => p.difficulty === meta.key);
             if (list.length === 0) return null;
             return (
-              <section key={meta.stage}>
-                <div className="flex items-center gap-2">
+              <section key={meta.key}>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={`h-1.5 w-1.5 rounded-full ${meta.tone}`} />
                   <h2 className="text-sm font-medium">{meta.title}</h2>
                   <span className="text-[11px] text-muted-foreground/70">{meta.desc}</span>
