@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Circle, CircleDot, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import DifficultyBadge from '@/components/DifficultyBadge';
+import CurriculumAdvisor from '@/components/curriculum/CurriculumAdvisor';
 
 const STAGE_META = [
   { stage: 1, title: 'STEP 1 — 定石', desc: '型を体に入れる（配列・文字列・探索）', tone: 'bg-cyan-400' },
@@ -23,12 +24,16 @@ export default function Curriculum() {
   const [subs, setSubs] = useState([]);
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     base44.entities.Problem.filter({ source: 'curriculum' }, { sort: 'order_index', limit: 200 }).then((page) =>
       setProblems(page.items)
     );
     base44.entities.Submission.list({ sort: '-created_date', limit: 200 }).then((page) => setSubs(page.items));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const statusOf = useMemo(() => {
     const map = {};
@@ -58,7 +63,7 @@ export default function Curriculum() {
         <p className="mt-2 text-sm text-muted-foreground">
           定石 → 低レイヤー → 大型テック級。1問ごとに、口で語るのでなく手で書ける形にします。
         </p>
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <div className="h-1 w-40 overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full rounded-full bg-primary transition-all"
@@ -68,6 +73,9 @@ export default function Curriculum() {
           <span className="text-[11px] text-muted-foreground">
             {solved} / {problems?.length ?? 0} 問 正解
           </span>
+          <div className="ml-auto">
+            <CurriculumAdvisor problems={problems} onApplied={load} />
+          </div>
         </div>
       </header>
 
