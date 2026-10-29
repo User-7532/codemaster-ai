@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Circle, CircleDot, Loader2 } from 'lucide-rea
 import { base44 } from '@/api/base44Client';
 import DifficultyBadge from '@/components/DifficultyBadge';
 import CurriculumAdvisor from '@/components/curriculum/CurriculumAdvisor';
+import { useToast } from '@/components/ui/use-toast';
 
 const DIFF_META = [
   { key: 'basic', title: '基礎', desc: '型を体に入れる（配列・文字列・探索）', tone: 'bg-cyan-400' },
@@ -34,8 +35,23 @@ export default function Curriculum() {
     base44.entities.Submission.list({ sort: '-created_date', limit: 200 }).then((page) => setSubs(page.items));
   }, []);
 
+  const { toast } = useToast();
+
   useEffect(() => {
     load();
+    // 残りが少なくなっていたら、黙って苦手に合わせた問題を足す
+    base44.functions
+      .invoke('replenishCurriculum', {})
+      .then((res) => {
+        const added = res.data?.added || [];
+        if (!added.length) return;
+        toast({
+          title: `${added.length}問をあなたに合わせて追加しました`,
+          description: '苦手なトピックと今のレベルから作りました',
+        });
+        load();
+      })
+      .catch(() => {});
   }, [load]);
 
   const statusOf = useMemo(() => {
