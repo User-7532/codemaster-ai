@@ -54,6 +54,20 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  a,
+  button,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  a:active,
+  button:active,
+  [role="button"]:active {
+    scale: 0.98;
   }
 
   h1,
@@ -155,4 +169,21 @@
 
 .tk-fn {
   color: #9dcfee;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  a:active,
+  button:active,
+  [role="button"]:active {
+    scale: 1;
+  }
 }
