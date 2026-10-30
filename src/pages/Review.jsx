@@ -6,6 +6,7 @@ import { todayISO } from '@/lib/srs';
 import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import ClozeCard from '@/components/knowledge/ClozeCard';
+import WrittenCard from '@/components/knowledge/WrittenCard';
 
 const TABS = [
   { id: 'due', label: '今日の復習' },
@@ -207,31 +208,42 @@ export default function Review() {
                 <span>{current.type === 'knowledge' ? '知識' : 'コード'}</span>
               </div>
               {current.type === 'knowledge' ? (
-                <>
+                current.card.kind === 'written' ? (
                   <div className="mt-3">
-                    <ClozeCard
+                    <WrittenCard
+                      key={current.card.id}
                       card={current.card}
-                      revealed={revealed}
-                      onToggle={() => setRevealed((v) => !v)}
+                      onResult={answerKnowledge}
+                      onSkip={() => setIdx((i) => i + 1)}
                     />
                   </div>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => answerKnowledge(false)}
-                      className="flex-1 rounded-lg border border-rose-700/25 bg-rose-500/10 py-2.5 text-[11px] text-rose-700"
-                    >
-                      わからなかった
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => answerKnowledge(true)}
-                      className="flex-1 rounded-lg border border-teal-700/25 bg-teal-500/10 py-2.5 text-[11px] text-teal-700"
-                    >
-                      言えた
-                    </button>
-                  </div>
-                </>
+                ) : (
+                  <>
+                    <div className="mt-3">
+                      <ClozeCard
+                        card={current.card}
+                        revealed={revealed}
+                        onToggle={() => setRevealed((v) => !v)}
+                      />
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => answerKnowledge(false)}
+                        className="flex-1 rounded-lg border border-rose-700/25 bg-rose-500/10 py-2.5 text-[11px] text-rose-700"
+                      >
+                        わからなかった
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => answerKnowledge(true)}
+                        className="flex-1 rounded-lg border border-teal-700/25 bg-teal-500/10 py-2.5 text-[11px] text-teal-700"
+                      >
+                        言えた
+                      </button>
+                    </div>
+                  </>
+                )
               ) : (
                 <div className="mt-3 rounded-xl border border-border/60 bg-card/40 p-5">
                   <p className="text-[13px]">{current.item.title}</p>
