@@ -15,10 +15,24 @@ export default function AssistantPanel({
 }) {
   const [draft, setDraft] = useState('');
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, [messages, busy]);
+
+  // 開いたとき・引用が入ったときに、すぐ入力できるようキャレットを置く
+  useEffect(() => {
+    // クリック処理のあとで確実にフォーカスが残るよう、次の描画タイミングで置く
+    const timer = setTimeout(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      const end = el.value.length;
+      el.setSelectionRange(end, end);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [quote]);
 
   const submit = () => {
     if (!draft.trim() || busy) return;
@@ -120,6 +134,7 @@ export default function AssistantPanel({
         </div>
         <div className="flex items-end gap-1.5">
           <textarea
+            ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
