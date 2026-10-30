@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { LANGUAGES, getTemplate, fallbackTemplate } from '@/lib/languages';
 import { recordReview } from '@/lib/srs';
+import { completeSessionProblem } from '@/lib/review-session';
 import CodeEditor from '@/components/CodeEditor';
 import ProblemBrief from '@/components/workspace/ProblemBrief';
 import HintBox from '@/components/workspace/HintBox';
@@ -137,6 +138,12 @@ export default function Workspace() {
     }
   };
 
+  // 復習・混在セッションでは、解き終えたら一覧ではなく復習の続きへ戻す
+  const goNext = () => {
+    if (mode === 'mixed') completeSessionProblem(problem.id);
+    navigate('/review');
+  };
+
   const switchLanguage = (next) => {
     if (next === language || !problem) return;
     const currentTemplates = (problem.templates || []).map((t) => t.code);
@@ -266,9 +273,19 @@ export default function Workspace() {
               </button>
             )}
             {result && (
-              <Link to="/curriculum" className="text-[11px] text-muted-foreground hover:text-foreground">
-                次の問題へ
-              </Link>
+              mode === 'mixed' || mode === 'review' ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {mode === 'mixed' ? '次の問題へ' : '復習に戻る'}
+                </button>
+              ) : (
+                <Link to="/curriculum" className="text-[11px] text-muted-foreground hover:text-foreground">
+                  次の問題へ
+                </Link>
+              )
             )}
             <span className="ml-auto text-[10px] text-muted-foreground/60">サーバーでは実行しません（AIがコードを読んで判定）</span>
           </div>

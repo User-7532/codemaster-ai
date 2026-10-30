@@ -4,6 +4,7 @@ import { ArrowRight, CalendarClock, Flame, Layers, Loader2, Shuffle } from 'luci
 import { base44 } from '@/api/base44Client';
 import { todayISO } from '@/lib/srs';
 import { recordKnowledgeAnswer } from '@/lib/knowledge';
+import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import ClozeCard from '@/components/knowledge/ClozeCard';
 
 const TABS = [
@@ -17,11 +18,16 @@ export default function Review() {
   const [items, setItems] = useState(null);
   const [subs, setSubs] = useState([]);
   const [cards, setCards] = useState({});
-  const [tab, setTab] = useState('due');
+  const [tab, setTab] = useState(() => (loadSession() ? 'mixed' : 'due'));
 
-  const [session, setSession] = useState(null);
-  const [idx, setIdx] = useState(0);
+  // 問題を解きに行って戻ってきたときは、続きから再開する
+  const [session, setSession] = useState(() => loadSession()?.queue || null);
+  const [idx, setIdx] = useState(() => loadSession()?.idx || 0);
   const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    if (session) saveSession(session, idx);
+  }, [session, idx]);
 
   useEffect(() => {
     base44.entities.ReviewItem.list({ sort: 'due_date', limit: 200 }).then((page) => setItems(page.items));
@@ -182,7 +188,11 @@ export default function Review() {
               <p className="text-xs text-muted-foreground">セッションはここまでです。</p>
               <button
                 type="button"
-                onClick={() => setSession(null)}
+                onClick={() => {
+                  clearSession();
+                  setSession(null);
+                  setIdx(0);
+                }}
                 className="mt-3 text-[11px] text-primary hover:underline"
               >
                 最初に戻る
