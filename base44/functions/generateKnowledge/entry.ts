@@ -83,7 +83,12 @@ export default async function (req) {
       : [];
 
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
+    }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     if (source === 'topic') {
@@ -118,7 +123,10 @@ export default async function (req) {
     let prompt = '';
 
     if (source === 'chat') {
-      const msgPage = await base44.entities.AssistantMessage.list({ sort: '-created_date', limit: 40 });
+      const msgPage = await base44.entities.AssistantMessage.filter(
+        { created_by_id: user.id },
+        { sort: '-created_date', limit: 40 }
+      );
       const msgs = (msgPage.items || []).slice().reverse();
       const transcript = msgs
         .map((m) => `${m.role === 'user' ? '利用者' : 'アシスタント'}: ${(m.content || '').slice(0, 600)}`)

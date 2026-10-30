@@ -45,6 +45,15 @@ const DIFFICULTY_JA = {
 
 export default async function (req) {
   try {
+    const base44 = createClientFromRequest(req);
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
+    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await req.json().catch(() => ({}));
     const {
       topic = '',
@@ -55,10 +64,6 @@ export default async function (req) {
       source = 'ai',
       avoid_titles = [],
     } = body;
-
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const prompt = `あなたは技術面接の出題者です。C++・C・Pythonのどれでも解けるプログラミング問題を1問作ってください。
 

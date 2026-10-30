@@ -59,13 +59,21 @@ const SCHEMA = {
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
+    }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // 読むのは本人の記録だけにする
+    const own = { created_by_id: user.id };
 
     const [{ items: problems }, { items: subs }, { items: attempts }] = await Promise.all([
       base44.entities.Problem.filter({ source: 'curriculum' }, { sort: 'order_index', limit: 200 }),
-      base44.entities.Submission.list({ sort: '-created_date', limit: 200 }),
-      base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 200 }),
+      base44.entities.Submission.filter(own, { sort: '-created_date', limit: 200 }),
+      base44.entities.KnowledgeAttempt.filter(own, { sort: '-created_date', limit: 200 }),
     ]);
 
     const solvedIds = new Set(subs.filter((s) => s.verdict === 'correct').map((s) => s.problem_id));

@@ -13,7 +13,12 @@ const LEARNING_MAX = 900;
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
+    }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
@@ -28,11 +33,11 @@ export default async function (req) {
 
     const [{ items: history }, { items: memories }, { items: subs }, { items: reviews }, { items: attempts }, { items: problems }] =
       await Promise.all([
-        base44.entities.AssistantMessage.list({ sort: '-created_date', limit: HISTORY_LIMIT }),
-        base44.entities.AssistantMemory.list({ sort: '-created_date', limit: 1 }),
-        base44.entities.Submission.list({ sort: '-created_date', limit: 40 }),
-        base44.entities.ReviewItem.filter({}, { sort: 'due_date', limit: 100 }),
-        base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 60 }),
+        base44.entities.AssistantMessage.filter({ created_by_id: user.id }, { sort: '-created_date', limit: HISTORY_LIMIT }),
+        base44.entities.AssistantMemory.filter({ created_by_id: user.id }, { sort: '-created_date', limit: 1 }),
+        base44.entities.Submission.filter({ created_by_id: user.id }, { sort: '-created_date', limit: 40 }),
+        base44.entities.ReviewItem.filter({ created_by_id: user.id }, { sort: 'due_date', limit: 100 }),
+        base44.entities.KnowledgeAttempt.filter({ created_by_id: user.id }, { sort: '-created_date', limit: 60 }),
         base44.entities.Problem.list({ sort: 'order_index', limit: 100 }),
       ]);
 
