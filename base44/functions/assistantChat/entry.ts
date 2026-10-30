@@ -5,6 +5,11 @@ function jaDate(iso) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+// 参照する直近の会話数と、保存する要点の上限。増やしすぎると応答が遅くなる
+const HISTORY_LIMIT = 12;
+const SUMMARY_MAX = 1200;
+const LEARNING_MAX = 900;
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -21,14 +26,17 @@ export default async function (req) {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const [{ items: history }, { items: subs }, { items: reviews }, { items: attempts }, { items: problems }] =
+    const [{ items: history }, { items: memories }, { items: subs }, { items: reviews }, { items: attempts }, { items: problems }] =
       await Promise.all([
-        base44.entities.AssistantMessage.list({ sort: '-created_date', limit: 12 }),
+        base44.entities.AssistantMessage.list({ sort: '-created_date', limit: HISTORY_LIMIT }),
+        base44.entities.AssistantMemory.list({ sort: '-created_date', limit: 1 }),
         base44.entities.Submission.list({ sort: '-created_date', limit: 40 }),
         base44.entities.ReviewItem.filter({}, { sort: 'due_date', limit: 100 }),
         base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 60 }),
         base44.entities.Problem.list({ sort: 'order_index', limit: 100 }),
       ]);
+
+    const memory = memories[0] || null;
 
     const correctCount = subs.filter((s) => s.verdict === 'correct').length;
     const accuracy = subs.length ? Math.round((correctCount / subs.length) * 100) : 0;
@@ -74,10 +82,9 @@ export default async function (req) {
       .map((s) => `- ${jaDate(s.created_date)} ${s.problem_title || '無題'} / ${s.language || '-'} / ${s.verdict === 'correct' ? '正解' : s.verdict === 'partial' ? '部分点' : '不正解'}`)
       .join('\n');
 
-    const historyText = history
-      .slice()
-      .reverse()
-      .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${String(m.content).slice(0, 600)}`)
+    const historyAsc = history.slice().reverse();
+    const recentTalk = historyAsc
+      .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${String(m.content).slice(0, 500)}`)
       .join('\n');
 
     const prompt = `あなたは「CodeMaster AI」の学習アシスタントです。本人の学習状況と、いま見ている画面の内容を踏まえて会話します。
@@ -90,6 +97,8 @@ export default async function (req) {
 - 定型の前置き・定型の締め（「記録を見るかぎり」「次にやること」など）や、同じ構成の繰り返しは書かない。
 - 箇条書きは、並列な情報を並べるときだけ使う。ふつうの説明は文章で書く。
 - 画面や記録に出ていないことは断定しない。確かでないときは、その旨を短く伝える。
+- 以前の会話の要点は下に渡す。要点と直近の会話が食い違うときは、直近の会話を優先する。
+- 要点に書かれていない過去の出来事を、あったかのように話さない。
 - 画面の要素に触れるときは、渡された抜粋に実際に書かれている語だけを使う。存在しないメニュー・ボタン・ページ名を作り話にしない。
 - 質問の意図が2通りに取れるときは、両方に短く触れるか、確認を1つだけ聞く。
 - 記号の装飾（アスタリスクや見出し記号）は使わない。長さは問いの重さに合わせる（目安は2〜6文、必要なときだけ長くする）。
@@ -100,7 +109,13 @@ export default async function (req) {
 【画面に表示されている内容（抜粋）】
 ${pageContext || '（取得できませんでした）'}
 
-【学習状況の記録】
+【以前の会話から残している要点】
+${memory?.summary || '（まだありません）'}
+
+【学習の傾向の要点（自動更新）】
+${memory?.learning || '（まだありません）'}
+
+【いまの学習状況】
 - 提出した回数: ${subs.length}回 / 正解 ${correctCount}回 / 正答率 ${accuracy}%
 - 解いた問題: ${solvedIds.size}問 / カリキュラム全${curriculum.length}問
 - 復習待ち: ${dueCount}件
@@ -110,21 +125,96 @@ ${pageContext || '（取得できませんでした）'}
 - 最近の提出（新しい順）:
 ${recent || 'まだ提出なし'}
 
+【直近の会話（古い順）】
+${recentTalk || '（はじめての会話）'}
+
 【今回引用された本文（この部分についての質問）】
 ${quote ? `「${quote}」` : '（引用なし）'}
-
-【これまでの会話（古い順）】
-${historyText || '（はじめての会話）'}
 
 【今回の発言】${message}`;
 
     const reply = await base44.asServiceRole.integrations.Core.InvokeLLM({ prompt });
     const text = String(reply || '').trim() || 'うまく答えを作れませんでした。もう一度話しかけてください。';
 
-    await base44.entities.AssistantMessage.bulkCreate([
+    const created = await base44.entities.AssistantMessage.bulkCreate([
       { role: 'user', content: message },
       { role: 'assistant', content: text },
     ]);
+    const createdList = Array.isArray(created) ? created : created?.items || [];
+
+    // 要点の更新は会話の返答を待たせない。失敗しても会話はそのまま続く
+    try {
+      const since = memory?.last_message_date || '';
+      const fresh = [
+        ...(since ? historyAsc.filter((m) => m.created_date > since) : historyAsc),
+        ...(createdList.length
+          ? createdList.map((m) => ({ role: m.role, content: m.content, created_date: m.created_date }))
+          : [
+              { role: 'user', content: message, created_date: new Date().toISOString() },
+              { role: 'assistant', content: text, created_date: new Date().toISOString() },
+            ]),
+      ];
+
+      if (fresh.length > 0) {
+        const talk = fresh
+          .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${String(m.content).slice(0, 400)}`)
+          .join('\n');
+
+        const digest = [
+          `提出 ${subs.length}回 / 正解 ${correctCount}回 / 正答率 ${accuracy}%`,
+          `解いた問題 ${solvedIds.size}問 / カリキュラム全${curriculum.length}問`,
+          `復習待ち ${dueCount}件`,
+          `今日(${todayLabel}) 提出 ${todaySubs.length}回 / 正解 ${todayCorrect}回`,
+          `苦手 ${weak.join('、') || '記録なし'}`,
+          `知識 ${domainLine || '記録なし'}`,
+        ].join('\n');
+
+        const memo = await base44.asServiceRole.integrations.Core.InvokeLLM({
+          prompt: `次の会話と学習記録から、次回以降も覚えておくべき要点だけを短くまとめ直します。要約を作る作業です。
+
+【これまでに残している要点】
+${memory?.summary || '（まだありません）'}
+
+【これまでの学習の傾向の要点】
+${memory?.learning || '（まだありません）'}
+
+【前回の要点よりあとの会話（古い順）】
+${talk}
+
+【いまの学習記録の数値】
+${digest}
+
+【まとめ方】
+- summary には、本人の学習の目標、好み（説明の粒度・言葉づかい・進め方の希望）、継続中の話題や悩み、決めたことだけを残す。一度きりの質問や作業の細部、言い換え、雑談の内容は残さない。
+- learning には、学習記録から読み取れる傾向（伸びている分野、誤答が続く分野、復習の滞り、最近の取り組み）を残す。数値は「いまの学習記録の数値」を正とし、以前の数値を足し合わせない。
+- 前回の要点と新しい会話が食い違うときは、新しい内容で置き換える。同じ内容を重ねて書かない。
+- 箇条書きの記号は使わず、意味のまとまりごとに短い文を並べる。summary は${SUMMARY_MAX}文字以内、learning は${LEARNING_MAX}文字以内。
+- 残すべき内容がない項目は空文字にする。要点になかった出来事を作らない。
+
+JSONで返す。`,
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              summary: { type: 'string' },
+              learning: { type: 'string' },
+            },
+            required: ['summary', 'learning'],
+          },
+        });
+
+        const patch = {
+          summary: String(memo?.summary || '').trim().slice(0, SUMMARY_MAX),
+          learning: String(memo?.learning || '').trim().slice(0, LEARNING_MAX),
+          last_message_date: fresh[fresh.length - 1].created_date || new Date().toISOString(),
+          message_count: (memory?.message_count || 0) + fresh.length,
+        };
+
+        if (memory) await base44.entities.AssistantMemory.update(memory.id, patch);
+        else await base44.entities.AssistantMemory.create(patch);
+      }
+    } catch {
+      // 要点の更新に失敗しても、返答はそのまま返す
+    }
 
     return Response.json({ reply: text });
   } catch (error) {
