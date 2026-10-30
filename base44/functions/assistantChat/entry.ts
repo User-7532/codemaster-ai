@@ -14,6 +14,8 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const message = String(body.message || '').trim().slice(0, 1000);
     const page = String(body.page || '').slice(0, 60);
+    const path = String(body.path || '').slice(0, 120);
+    const pageContext = String(body.context || '').trim().slice(0, 1600);
     if (!message) return Response.json({ error: 'メッセージを入力してください' }, { status: 400 });
 
     const today = new Date().toISOString().slice(0, 10);
@@ -21,10 +23,10 @@ export default async function (req) {
     const [{ items: history }, { items: subs }, { items: reviews }, { items: attempts }, { items: problems }] =
       await Promise.all([
         base44.entities.AssistantMessage.list({ sort: '-created_date', limit: 12 }),
-        base44.entities.Submission.list({ sort: '-created_date', limit: 100 }),
-        base44.entities.ReviewItem.filter({}, { sort: 'due_date', limit: 200 }),
-        base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 100 }),
-        base44.entities.Problem.list({ sort: 'order_index', limit: 200 }),
+        base44.entities.Submission.list({ sort: '-created_date', limit: 40 }),
+        base44.entities.ReviewItem.filter({}, { sort: 'due_date', limit: 100 }),
+        base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 60 }),
+        base44.entities.Problem.list({ sort: 'order_index', limit: 100 }),
       ]);
 
     const correctCount = subs.filter((s) => s.verdict === 'correct').length;
@@ -60,7 +62,7 @@ export default async function (req) {
       .join('、');
 
     const recent = subs
-      .slice(0, 10)
+      .slice(0, 8)
       .map((s) => `- ${jaDate(s.created_date)} ${s.problem_title || '無題'} / ${s.language || '-'} / ${s.verdict === 'correct' ? '正解' : s.verdict === 'partial' ? '部分点' : '不正解'}`)
       .join('\n');
 
@@ -70,17 +72,25 @@ export default async function (req) {
       .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${String(m.content).slice(0, 600)}`)
       .join('\n');
 
-    const prompt = `あなたは「CodeMaster AI」の学習アシスタントです。本人の学習履歴と今の状態を見ながら、短く具体的に答えます。
+    const prompt = `あなたは「CodeMaster AI」の学習アシスタントです。本人の学習状況と、いま見ている画面の内容を踏まえて会話します。
 
-【話し方のルール】
-- やさしい日本語だが、専門用語は正確な標準用語で書く。比喩や曖昧な言い換えはしない。
-- 3〜6文、または短い箇条書き3〜5個まで。長い前置きは書かない。
-- 記号の装飾（アスタリスクや見出し記号など）は使わず、ふつうの文章で書く。
-- 最後に、次にやるとよいことを1つだけ短く添える。
-- わからないことは推測で断定しない。「記録を見るかぎり」と前置きする。
+【答え方】
+- まず質問に直接答える。結論を先に書き、理由や補足はそのあとに続ける。
+- 読みやすい簡潔な日本語で書く。ただし、用語や条件を削って解釈が分かれる書き方はしない。必要な定義や例は1つ添える。
+- 専門用語は正確な標準用語で書く。比喩や曖昧な言い換えはしない。
+- 提案や次の手順は、そのほうが役立つと判断したときだけ添える。毎回つける必要はない。
+- 定型の前置き・定型の締め（「記録を見るかぎり」「次にやること」など）や、同じ構成の繰り返しは書かない。
+- 箇条書きは、並列な情報を並べるときだけ使う。ふつうの説明は文章で書く。
+- 画面や記録に出ていないことは断定しない。確かでないときは、その旨を短く伝える。
+- 画面の要素に触れるときは、渡された抜粋に実際に書かれている語だけを使う。存在しないメニュー・ボタン・ページ名を作り話にしない。
+- 質問の意図が2通りに取れるときは、両方に短く触れるか、確認を1つだけ聞く。
+- 記号の装飾（アスタリスクや見出し記号）は使わない。長さは問いの重さに合わせる（目安は2〜6文、必要なときだけ長くする）。
 
-【本人の今の状態】
-- 今見ている画面: ${page || '不明'}
+【いま見ている画面】${page || '不明'}${path ? `（${path}）` : ''}
+【画面に表示されている内容（抜粋）】
+${pageContext || '（取得できませんでした）'}
+
+【学習状況の記録】
 - 提出した回数: ${subs.length}回 / 正解 ${correctCount}回 / 正答率 ${accuracy}%
 - 解いた問題: ${solvedIds.size}問 / カリキュラム全${curriculum.length}問
 - 復習待ち: ${dueCount}件

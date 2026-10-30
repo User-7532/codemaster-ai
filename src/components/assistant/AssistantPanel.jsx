@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, Send, X } from 'lucide-react';
 
-const CHIPS = ['今日の進捗をまとめて', '要点を確認したい', '理解を深めたい'];
+const CHIPS = ['この画面の使い方は？', '次に何をやればいい？', '今日の進み具合は？'];
 
 export default function AssistantPanel({ messages, busy, onSend, onClose }) {
   const [draft, setDraft] = useState('');
@@ -41,9 +41,9 @@ export default function AssistantPanel({ messages, busy, onSend, onClose }) {
           </div>
         ) : messages.length === 0 ? (
           <p className="px-1 py-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-            学習の記録はこちらで見ています。
+            いま見ている画面と学習の記録を踏まえて答えます。
             <br />
-            進捗の確認でも、わからない所の質問でもどうぞ。
+            質問でも、相談でも、そのまま書いてください。
           </p>
         ) : (
           messages.map((m) => (
@@ -62,7 +62,7 @@ export default function AssistantPanel({ messages, busy, onSend, onClose }) {
         )}
         {busy && (
           <div className="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> 記録を確認しています…
+            <Loader2 className="h-3 w-3 animate-spin" /> 考えています…
           </div>
         )}
         <div ref={bottomRef} />
@@ -94,7 +94,7 @@ export default function AssistantPanel({ messages, busy, onSend, onClose }) {
             }}
             rows={1}
             maxLength={1000}
-            placeholder="例：今日は何をやればいい？"
+            placeholder="何でも聞いてください"
             className="max-h-24 min-h-9 flex-1 resize-none rounded-lg border border-border/70 bg-background/70 px-2.5 py-2 text-[12px] leading-relaxed outline-none focus:border-primary/50"
           />
           <button

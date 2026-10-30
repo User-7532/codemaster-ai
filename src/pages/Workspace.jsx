@@ -10,6 +10,7 @@ import ProblemBrief from '@/components/workspace/ProblemBrief';
 import HintBox from '@/components/workspace/HintBox';
 import GradeResult from '@/components/workspace/GradeResult';
 import MentorChat from '@/components/workspace/MentorChat';
+import HintChat from '@/components/workspace/HintChat';
 
 const MODE_LABEL = { interview: '模擬面接', review: '復習', ai: 'AI出題', mixed: '混在', practice: '練習' };
 
@@ -273,6 +274,8 @@ export default function Workspace() {
           </div>
 
           <HintBox hints={hints} loading={hintLoading} onReveal={revealHint} disabled={grading} />
+
+          <HintChat problemId={problem.id} language={language} code={code} />
 
           <GradeResult result={result} onOpenMentor={() => setMentorOpen(true)} />
 

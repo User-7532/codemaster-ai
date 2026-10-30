@@ -21,6 +21,16 @@ const pageLabelOf = (pathname) => {
   return PAGE_LABEL[pathname] || pathname;
 };
 
+// いま画面に出ている文字だけを軽く取り出して、会話の文脈にする
+const visibleContext = () => {
+  const main = document.querySelector('main');
+  const text = (main?.innerText || '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return text.slice(0, 1500);
+};
+
 export default function AssistantChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState(null);
@@ -44,6 +54,8 @@ export default function AssistantChat() {
       const res = await base44.functions.invoke('assistantChat', {
         message: text,
         page: pageLabelOf(pathname),
+        path: pathname,
+        context: visibleContext(),
       });
       if (res.data?.error) throw new Error(res.data.error);
       setMessages((prev) => [...(prev || []), { id: `a-${Date.now()}`, role: 'assistant', content: res.data.reply }]);

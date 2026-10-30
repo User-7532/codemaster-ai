@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { highlight } from '@/lib/highlight';
 import { languageFilename } from '@/lib/languages';
+import { autoIndent } from '@/lib/indent';
 
 export default function CodeEditor({ value = '', onChange, language = 'cpp', minRows = 16 }) {
   const html = useMemo(() => highlight(value, language), [value, language]);
@@ -8,9 +9,25 @@ export default function CodeEditor({ value = '', onChange, language = 'cpp', min
   const rows = Math.max(minRows, lineCount + 1);
 
   const handleKeyDown = (e) => {
+    const el = e.target;
+
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
+      e.preventDefault();
+      const { value: next, caret } = autoIndent({
+        value,
+        start: el.selectionStart,
+        end: el.selectionEnd,
+        language,
+      });
+      onChange(next);
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = caret;
+      });
+      return;
+    }
+
     if (e.key !== 'Tab') return;
     e.preventDefault();
-    const el = e.target;
     const start = el.selectionStart;
     const next = `${value.slice(0, start)}  ${value.slice(el.selectionEnd)}`;
     onChange(next);
