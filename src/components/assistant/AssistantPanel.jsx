@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Send, X } from 'lucide-react';
+import { GripHorizontal, Loader2, Send, X } from 'lucide-react';
 
 const CHIPS = ['この画面の使い方は？', '次に何をやればいい？', '今日の進み具合は？'];
 
-export default function AssistantPanel({ messages, busy, onSend, onClose }) {
+export default function AssistantPanel({ messages, busy, onSend, onClose, dragProps, dragging }) {
   const [draft, setDraft] = useState('');
   const bottomRef = useRef(null);
 
@@ -18,15 +18,23 @@ export default function AssistantPanel({ messages, busy, onSend, onClose }) {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+    <div className="rise-in flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur">
+      <div
+        {...dragProps}
+        className={`flex touch-none select-none items-center justify-between border-b border-border/60 px-4 py-2.5 ${
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        title="ドラッグで移動できます"
+      >
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
           <p className="text-[11px] font-medium text-foreground">学習アシスタント</p>
+          <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground/60" />
         </div>
         <button
           type="button"
           onClick={onClose}
+          onPointerDown={(e) => e.stopPropagation()}
           className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
           title="閉じる"
         >

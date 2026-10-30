@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import AssistantPanel from '@/components/assistant/AssistantPanel';
+import useDragPosition from '@/hooks/use-drag-position';
 
 const PAGE_LABEL = {
   '/': 'ダッシュボード',
@@ -37,6 +38,7 @@ export default function AssistantChat() {
   const [busy, setBusy] = useState(false);
   const { pathname } = useLocation();
   const { toast } = useToast();
+  const drag = useDragPosition();
 
   useEffect(() => {
     base44.entities.AssistantMessage.list({ sort: 'created_date', limit: 60 })
@@ -69,8 +71,19 @@ export default function AssistantChat() {
   return (
     <div className="fixed bottom-24 right-3 z-50 flex flex-col items-end gap-2 lg:bottom-6 lg:right-6">
       {open && (
-        <div className="h-[min(520px,calc(100dvh-13rem))] w-[min(360px,calc(100vw-1.5rem))] rise-in">
-          <AssistantPanel messages={messages} busy={busy} onSend={send} onClose={() => setOpen(false)} />
+        <div
+          ref={drag.ref}
+          className="relative z-10 h-[min(520px,calc(100dvh-13rem))] w-[min(360px,calc(100vw-1.5rem))]"
+          style={{ transform: `translate3d(${drag.offset.x}px, ${drag.offset.y}px, 0)` }}
+        >
+          <AssistantPanel
+            messages={messages}
+            busy={busy}
+            onSend={send}
+            onClose={() => setOpen(false)}
+            dragProps={drag.dragProps}
+            dragging={drag.dragging}
+          />
         </div>
       )}
       <button
