@@ -79,6 +79,12 @@ export default function WrittenCard({ card, onResult, onSkip }) {
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              // 変換中のEnterは送信せず、確定に使う
+              if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+              e.preventDefault();
+              judge();
+            }}
             rows={4}
             maxLength={2000}
             placeholder="分かる範囲で書いてください。長さは自由です。"
@@ -95,7 +101,7 @@ export default function WrittenCard({ card, onResult, onSkip }) {
             {busy ? 'AIが判定中…' : '判定する'}
           </button>
           <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/70">
-            あいまいな答えは不正解として扱います。急ぐときは「飛ばす」で先へ進めます。
+            あいまいな答えは不正解として扱います。Enterで送信、Shift+Enterで改行します。急ぐときは「飛ばす」で先へ進めます。
           </p>
         </>
       )}
