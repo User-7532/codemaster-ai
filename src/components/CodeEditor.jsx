@@ -29,10 +29,10 @@ export default function CodeEditor({ value = '', onChange, language = 'cpp', min
     if (e.key !== 'Tab') return;
     e.preventDefault();
     const start = el.selectionStart;
-    const next = `${value.slice(0, start)}  ${value.slice(el.selectionEnd)}`;
+    const next = `${value.slice(0, start)}    ${value.slice(el.selectionEnd)}`;
     onChange(next);
     requestAnimationFrame(() => {
-      el.selectionStart = el.selectionEnd = start + 2;
+      el.selectionStart = el.selectionEnd = start + 4;
     });
   };
 

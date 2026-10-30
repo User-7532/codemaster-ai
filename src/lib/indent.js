@@ -1,4 +1,4 @@
-const UNITS = { python: '    ', c: '  ', cpp: '  ' };
+const UNITS = { python: '    ', c: '    ', cpp: '    ' };
 const OPENERS = '([{';
 const CLOSERS = ')]}';
 
@@ -6,7 +6,7 @@ const leading = (line) => (line.match(/^[ \t]*/) || [''])[0];
 
 // 改行時に、直前の行と構文から次の行の字下げを決める
 export function autoIndent({ value, start, end, language }) {
-  const unit = UNITS[language] || '  ';
+  const unit = UNITS[language] || '    ';
   const isPython = language === 'python';
   const before = value.slice(0, start);
   const after = value.slice(end);
