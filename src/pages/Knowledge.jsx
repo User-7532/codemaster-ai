@@ -25,8 +25,11 @@ const shuffle = (arr) => {
 
 export default function Knowledge() {
   const initial = parseSelection(new URLSearchParams(window.location.search).get('domain'));
+  // 復習から「この1問」を指定して来たときのカードID
+  const focusId = new URLSearchParams(window.location.search).get('card');
 
   const [ready, setReady] = useState(false);
+  const [focusCard, setFocusCard] = useState(null);
   const [genre, setGenre] = useState(initial.genre);
   const [leaf, setLeaf] = useState(initial.leaf);
   const [customs, setCustoms] = useState([]);
@@ -44,10 +47,17 @@ export default function Knowledge() {
   const { toast } = useToast();
 
   useEffect(() => {
-    base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 300 }).then((page) => {
+    const loadCards = async () => {
+      const page = await base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 300 });
       cardsRef.current = page.items || [];
+      if (focusId) {
+        const found = cardsRef.current.find((c) => c.id === focusId);
+        const card = found || (await base44.entities.KnowledgeCard.get(focusId).catch(() => null));
+        if (card) setFocusCard(card);
+      }
       setReady(true);
-    });
+    };
+    loadCards();
     base44.entities.KnowledgeTopic.list({ limit: 100 }).then((page) => setCustoms(page.items || []));
   }, []);
 
@@ -105,15 +115,22 @@ export default function Knowledge() {
 
   useEffect(() => {
     if (!ready) return;
+    setRevealed(false);
+    // 復習から指定された1問だけを出す
+    if (focusCard) {
+      setDeck([focusCard]);
+      setIdx(0);
+      setNote('');
+      return;
+    }
     shownRef.current = new Set();
     setTally({ correct: 0, wrong: 0 });
-    setRevealed(false);
     setNote('');
     const pool = poolFor(genre, leaf, light);
     setDeck(pool.slice(0, 8));
     setIdx(0);
     if (pool.length < 3) fill(genre, leaf, light);
-  }, [genre, leaf, light, ready]);
+  }, [genre, leaf, light, ready, focusCard]);
 
   const current = deck[idx] || null;
 
@@ -124,6 +141,12 @@ export default function Knowledge() {
   }, [ready, busy, current, note, genre, deck.length]);
 
   const advance = () => {
+    // 指定された1問を終えたら、ふつうの出題に戻す
+    if (focusCard) {
+      setFocusCard(null);
+      setRevealed(false);
+      return;
+    }
     const next = idx + 1;
     setIdx(next);
     setRevealed(false);

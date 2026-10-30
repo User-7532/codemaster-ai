@@ -286,7 +286,8 @@ export default function Review() {
 }
 
 function Row({ item, card, showDate }) {
-  const href = item.item_type === 'problem' ? `/solve/${item.item_id}?mode=review` : `/knowledge`;
+  const href =
+    item.item_type === 'problem' ? `/solve/${item.item_id}?mode=review` : `/knowledge?card=${item.item_id}`;
   return (
     <Link
       to={href}
