@@ -16,6 +16,7 @@ export default async function (req) {
     const page = String(body.page || '').slice(0, 60);
     const path = String(body.path || '').slice(0, 120);
     const pageContext = String(body.context || '').trim().slice(0, 1600);
+    const quote = String(body.quote || '').replace(/\s+/g, ' ').trim().slice(0, 500);
     if (!message) return Response.json({ error: 'メッセージを入力してください' }, { status: 400 });
 
     const today = new Date().toISOString().slice(0, 10);
@@ -98,6 +99,9 @@ ${pageContext || '（取得できませんでした）'}
 - 知識モードの正答率: ${domainLine || '記録なし'}
 - 最近の提出（新しい順）:
 ${recent || 'まだ提出なし'}
+
+【今回引用された本文（この部分についての質問）】
+${quote ? `「${quote}」` : '（引用なし）'}
 
 【これまでの会話（古い順）】
 ${historyText || '（はじめての会話）'}

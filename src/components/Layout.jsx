@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import NavSidebar from '@/components/NavSidebar';
 import WallpaperLayer from '@/components/WallpaperLayer';
 import AssistantChat from '@/components/assistant/AssistantChat';
+import SelectionAsk from '@/components/assistant/SelectionAsk';
 import PageTransition from '@/components/PageTransition';
 
 export default function Layout() {
@@ -15,6 +16,7 @@ export default function Layout() {
         </PageTransition>
       </main>
       <AssistantChat />
+      <SelectionAsk />
     </div>
   );
 }

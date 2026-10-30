@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { GripHorizontal, Loader2, Send, X } from 'lucide-react';
+import { GripHorizontal, Loader2, Quote, Send, X } from 'lucide-react';
 
 const CHIPS = ['この画面の使い方は？', '次に何をやればいい？', '今日の進み具合は？'];
 
-export default function AssistantPanel({ messages, busy, onSend, onClose, dragProps, dragging }) {
+export default function AssistantPanel({
+  messages,
+  busy,
+  onSend,
+  onClose,
+  quote = '',
+  onClearQuote,
+  dragProps,
+  dragging,
+}) {
   const [draft, setDraft] = useState('');
   const bottomRef = useRef(null);
 
@@ -56,15 +65,20 @@ export default function AssistantPanel({ messages, busy, onSend, onClose, dragPr
         ) : (
           messages.map((m) => (
             <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-              <p
+              <div
                 className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === 'user'
                     ? 'bg-primary/12 text-foreground'
                     : 'border border-border/60 bg-background/70 text-foreground/90'
                 }`}
               >
+                {m.quote && (
+                  <p className="mb-1.5 border-l-2 border-primary/40 pl-2 text-[10px] leading-relaxed text-muted-foreground">
+                    {m.quote}
+                  </p>
+                )}
                 {m.content}
-              </p>
+              </div>
             </div>
           ))
         )}
@@ -77,6 +91,20 @@ export default function AssistantPanel({ messages, busy, onSend, onClose, dragPr
       </div>
 
       <div className="border-t border-border/60 px-3 py-2.5">
+        {quote && (
+          <div className="mb-2 flex items-start gap-1.5 rounded-lg border border-primary/25 bg-primary/5 px-2 py-1.5">
+            <Quote className="mt-0.5 h-3 w-3 shrink-0 text-primary/70" />
+            <p className="max-h-16 flex-1 overflow-y-auto text-[10px] leading-relaxed text-muted-foreground">{quote}</p>
+            <button
+              type="button"
+              onClick={onClearQuote}
+              className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+              title="引用を外す"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         <div className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5">
           {CHIPS.map((c) => (
             <button
@@ -102,7 +130,7 @@ export default function AssistantPanel({ messages, busy, onSend, onClose, dragPr
             }}
             rows={1}
             maxLength={1000}
-            placeholder="何でも聞いてください"
+            placeholder={quote ? 'この部分について、どう聞きますか？' : '何でも聞いてください'}
             className="max-h-24 min-h-9 flex-1 resize-none rounded-lg border border-border/70 bg-background/70 px-2.5 py-2 text-[12px] leading-relaxed outline-none focus:border-primary/50"
           />
           <button
