@@ -49,6 +49,15 @@ export default function AssistantPanel({
   // 引用があるときは、その部分についての聞き方だけを出す
   const chips = quote ? CHIPS_QUOTE : CHIPS_NORMAL;
 
+  // サジェストは送らずに、入力欄の末尾へ入れて手を加えられるようにする
+  const fill = (text) => {
+    setDraft(text);
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    requestAnimationFrame(() => el.setSelectionRange(text.length, text.length));
+  };
+
   return (
     <div className="rise-in flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur">
       <div
@@ -128,12 +137,12 @@ export default function AssistantPanel({
             </button>
           </div>
         )}
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <div className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5">
           {chips.map((c) => (
             <button
               key={c}
               type="button"
-              onClick={() => onSend(c)}
+              onClick={() => fill(c)}
               disabled={busy}
               className="shrink-0 rounded-full border border-border/70 px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
             >
