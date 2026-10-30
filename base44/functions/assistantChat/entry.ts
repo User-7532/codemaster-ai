@@ -36,6 +36,13 @@ export default async function (req) {
     const curriculum = problems.filter((p) => p.source === 'curriculum');
     const dueCount = reviews.filter((r) => r.due_date <= today).length;
 
+    // 今日（日本時間）の提出回数。進み具合を聞かれたときに使う
+    const toJstDate = (iso) => new Date(new Date(iso).getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    const todayJst = toJstDate(new Date().toISOString());
+    const todayLabel = `${Number(todayJst.slice(5, 7))}/${Number(todayJst.slice(8, 10))}`;
+    const todaySubs = subs.filter((s) => s.created_date && toJstDate(s.created_date) === todayJst);
+    const todayCorrect = todaySubs.filter((s) => s.verdict === 'correct').length;
+
     const topicStats = {};
     subs.forEach((s) => {
       (s.topics || []).forEach((t) => {
@@ -86,6 +93,8 @@ export default async function (req) {
 - 画面の要素に触れるときは、渡された抜粋に実際に書かれている語だけを使う。存在しないメニュー・ボタン・ページ名を作り話にしない。
 - 質問の意図が2通りに取れるときは、両方に短く触れるか、確認を1つだけ聞く。
 - 記号の装飾（アスタリスクや見出し記号）は使わない。長さは問いの重さに合わせる（目安は2〜6文、必要なときだけ長くする）。
+- 今日の進み具合を聞かれたら、良かった点を具体的に1つ以上挙げ、次に伸ばせそうな点を1つだけ添える。責める調子にせず、本人の努力が伝わる書き方にする。
+- 息抜きや雑談を求められたら、学習の記録から関心がありそうな技術の話題を1つ選び、短く話す。そのあと学習に戻るよう急かさない。
 
 【いま見ている画面】${page || '不明'}${path ? `（${path}）` : ''}
 【画面に表示されている内容（抜粋）】
@@ -95,6 +104,7 @@ ${pageContext || '（取得できませんでした）'}
 - 提出した回数: ${subs.length}回 / 正解 ${correctCount}回 / 正答率 ${accuracy}%
 - 解いた問題: ${solvedIds.size}問 / カリキュラム全${curriculum.length}問
 - 復習待ち: ${dueCount}件
+- 今日（${todayLabel}）の提出: ${todaySubs.length}回 / 正解 ${todayCorrect}回
 - 苦手なトピック: ${weak.join('、') || 'まだ十分な記録なし'}
 - 知識モードの正答率: ${domainLine || '記録なし'}
 - 最近の提出（新しい順）:

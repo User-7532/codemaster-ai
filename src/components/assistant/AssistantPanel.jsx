@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { GripHorizontal, Loader2, Quote, Send, X } from 'lucide-react';
 
-const CHIPS = ['この画面の使い方は？', '次に何をやればいい？', '今日の進み具合は？'];
+const CHIPS_NORMAL = [
+  '記録から、私に役立つことを教えて',
+  '次にやるといいことを提案して',
+  '今日の進み具合を、やさしく評価して',
+  '息抜きに、興味のありそうな話をして',
+];
+const CHIPS_QUOTE = ['どういう意味？', '詳しく説明して'];
 
 export default function AssistantPanel({
   messages,
@@ -39,6 +45,9 @@ export default function AssistantPanel({
     onSend(draft);
     setDraft('');
   };
+
+  // 引用があるときは、その部分についての聞き方だけを出す
+  const chips = quote ? CHIPS_QUOTE : CHIPS_NORMAL;
 
   return (
     <div className="rise-in flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur">
@@ -119,8 +128,8 @@ export default function AssistantPanel({
             </button>
           </div>
         )}
-        <div className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5">
-          {CHIPS.map((c) => (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {chips.map((c) => (
             <button
               key={c}
               type="button"
