@@ -6,16 +6,10 @@ import { base44 } from '@/api/base44Client';
 import VerdictBadge from '@/components/VerdictBadge';
 import WeaknessBar from '@/components/dashboard/WeaknessBar';
 import { topicWeakness } from '@/lib/insights';
+import { domainLabel } from '@/lib/knowledge-domains';
 
 const DOMAIN_LABELS = {
-  ap: '応用情報',
-  osi: 'OSIモデル',
-  security: 'セキスペ',
-  aws: 'AWS',
-  cisco: 'Cisco',
-  cpp: 'C系',
-  c: 'C',
-  python: 'Python',
+  business: 'ビジネス',
 };
 
 const dayKey = (d) => {
@@ -170,7 +164,7 @@ export default function Stats() {
                     className="flex items-center gap-3 rounded-lg transition-colors hover:bg-accent/40"
                   >
                     <span className="w-20 shrink-0 text-[11px] text-muted-foreground">
-                      {DOMAIN_LABELS[d.domain] || d.domain}
+                      {DOMAIN_LABELS[d.domain] || domainLabel(d.domain)}
                     </span>
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
                       <div className="h-full rounded-full bg-teal-400" style={{ width: `${d.rate}%` }} />

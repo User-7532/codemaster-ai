@@ -1,0 +1,37 @@
+{
+  "name": "KnowledgeTopic",
+  "type": "object",
+  "properties": {
+    "genre": {
+      "type": "string",
+      "enum": [
+        "tech",
+        "cert",
+        "corp"
+      ],
+      "description": "\u89aa\u30b8\u30e3\u30f3\u30eb"
+    },
+    "name": {
+      "type": "string",
+      "description": "\u81ea\u7531\u5165\u529b\u3055\u308c\u305f\u5019\u88dc\u540d"
+    }
+  },
+  "required": [
+    "genre",
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

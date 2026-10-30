@@ -1,10 +1,12 @@
+import { domainLabel } from '@/lib/knowledge-domains';
+
 export default function ClozeCard({ card, revealed, onToggle }) {
   const parts = (card?.text || '').split('___');
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/50 p-5">
       <div className="flex items-center gap-2">
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{card.domain}</span>
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{domainLabel(card.domain)}</span>
         {card.topic && <span className="text-[10px] text-muted-foreground/70">{card.topic}</span>}
       </div>
 

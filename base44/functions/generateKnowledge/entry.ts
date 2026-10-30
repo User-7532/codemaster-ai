@@ -1,21 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 
-const DOMAIN_LABEL = {
-  ap: '応用情報技術者試験',
-  security: '情報処理安全確保支援士（セキスペ）',
-  aws: 'AWS認定',
-  cisco: 'Cisco（CCNA/CCNP）',
-  osi: 'OSI参照モデル',
-  cpp: 'C言語・C++',
-  python: 'Python',
-  global: '海外テック企業（Google・Apple・Amazon・Meta・Microsoftなど）の採用面接',
-  business: 'ビジネス・経営・KPI・経済と技術の接点',
+const WHOLE = { tech: 'すべて', cert: '混合', corp: '混合' };
+
+const GENRE_LABEL = {
+  tech: 'IT技術の基礎（プログラミング言語・ネットワーク・サイバーセキュリティ）',
+  cert: 'IT資格試験',
+  corp: '企業の技術面接',
+  business: 'ビジネス・経営・KPIと技術の接点',
 };
-
-// ビジネス視点を混ぜる分野。OSIモデルや言語の分野は技術だけに絞る
-const BUSINESS_ANGLE = ['ap', 'security', 'aws', 'cisco', 'global', 'business'];
-
-const ANSWER_DOMAINS = ['ap', 'security', 'aws', 'cisco', 'osi', 'cpp', 'python', 'global', 'business'];
 
 const CARD_SCHEMA = {
   type: 'object',
@@ -25,7 +17,7 @@ const CARD_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          domain: { type: 'string', enum: ANSWER_DOMAINS },
+          leaf: { type: 'string' },
           topic: { type: 'string' },
           kind: { type: 'string', enum: ['cloze', 'written'] },
           text: { type: 'string' },
@@ -34,7 +26,7 @@ const CARD_SCHEMA = {
           explanation: { type: 'string' },
           difficulty: { type: 'string', enum: ['basic', 'intermediate', 'advanced'] },
         },
-        required: ['domain', 'topic', 'kind', 'text', 'answer', 'explanation', 'difficulty'],
+        required: ['leaf', 'topic', 'kind', 'text', 'answer', 'explanation', 'difficulty'],
       },
     },
   },
@@ -49,45 +41,79 @@ const RULES = `共通の書式:
 - 日本語で書く。技術用語は正確な標準用語を使い、比喩や曖昧な言い換えはしない。
 - 1問は短く。冗長な前置きや同じ内容の繰り返しは入れない。`;
 
-function angleRule(domain, count) {
-  if (domain === 'global') {
-    return `- 海外テック企業の面接で問われる観点を扱う。行動面接（AmazonのLeadership Principles、STAR）、価値観や文化への適合、計算量を実装前に説明する習慣、システムデザイン、曖昧な課題の進め方、英語での説明の組み立てなど。
-- 企業名と評価観点の対応は広く知られているものだけを扱い、断定しすぎない。
-- ${count}問のうち1〜2問は、技術判断がビジネス指標（KPI、コスト、ユニットエコノミクス）にどう効くかを問う問題にする。`;
+function genreRule(genre) {
+  if (genre === 'tech') {
+    return '- ビジネスや経営の話題は出さない。純粋に技術の理解だけを問う。';
   }
-  if (domain === 'business') {
-    return `- KPI、ユニットエコノミクス（LTV・CAC）、チャーンレート、ROI、TCO、SLA、機会損失、キャッシュフローなど、技術判断がビジネス指標に効く知識を扱う。
+  if (genre === 'cert') {
+    return `- その資格の出題範囲に沿う。用語の定義、仕組み、誤りやすい点を問う。日程・料金・制度の細目など変わりやすい情報は問わない。
+- 6問のうち1問は、技術の選択がコストや機会損失にどう効くかを問う問題にしてよい。`;
+  }
+  if (genre === 'corp') {
+    return `- 企業の技術面接で問われる観点（技術判断の説明、設計の考え方、基礎の正確さ、経験の伝え方）を扱う。日本企業と海外企業のどちらにも通じる内容にする。
+- 特定企業の内部制度・選考フロー・非公開の情報は断定しない。公開されている技術領域や一般的な面接観点の範囲に限る。
+- 6問のうち1問は、技術判断がビジネス指標（KPI、コスト、機会損失）にどう効くかを問う問題にしてよい。`;
+  }
+  return `- KPI、ユニットエコノミクス（LTV・CAC）、チャーンレート、ROI、TCO、SLA、機会損失、キャッシュフローなど、技術判断がビジネス指標に効く知識を扱う。
 - 定義を問う cloze と、なぜその指標を技術判断に使うのかを問う written を混ぜる。`;
+}
+
+function difficultyRule(count, total, accuracy) {
+  if (total < 6) {
+    return '- 難易度は basic と intermediate を中心にする。まず基礎の抜けを確かめる。';
   }
-  if (BUSINESS_ANGLE.includes(domain)) {
-    return `- この分野の試験や面接では、経営・ビジネスとの接点（コスト、機会損失、KPI、ROI、SLA、契約や費用対効果）を問う問題も出る。${count}問のうち1〜2問は、技術の選択がビジネス上の何を左右するかを問う問題にする。
-- 残りは、その分野の技術知識そのものを問う問題にする。`;
+  if (accuracy >= 80) {
+    return `- 直近の正答率は${accuracy}%（${total}問）と高い。${count}問のうち4問は intermediate か advanced にして、理解を一段深く問う。基礎の確認として basic を1問は入れる。`;
   }
-  return '- ビジネスや経営の話題は出さない。純粋に技術の理解だけを問う。';
+  if (accuracy <= 50) {
+    return `- 直近の正答率は${accuracy}%（${total}問）と低い。basic を${Math.max(2, count - 2)}問、intermediate を2問にして、用語の定義と仕組みの理解を固める。`;
+  }
+  return `- 直近の正答率は${accuracy}%（${total}問）で中くらい。basic を2問、intermediate を3問、advanced を1問の割合にする。`;
 }
 
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
     const source = body.source === 'chat' ? 'chat' : 'topic';
-    const domain = String(body.domain || '').slice(0, 20);
+    const genre = String(body.genre || '').slice(0, 10);
+    const leaf = String(body.leaf || '').slice(0, 30);
     const count = Math.max(4, Math.min(8, Number(body.count) || 6));
+    const leaves = Array.isArray(body.leaves)
+      ? body.leaves.map((x) => String(x).slice(0, 30)).filter(Boolean).slice(0, 12)
+      : [];
 
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (source === 'topic' && !DOMAIN_LABEL[domain]) {
-      return Response.json({ error: 'unknown domain' }, { status: 400 });
+    if (source === 'topic') {
+      if (!GENRE_LABEL[genre]) return Response.json({ error: 'unknown genre' }, { status: 400 });
+      if (genre !== 'business' && !leaf && leaves.length === 0) {
+        return Response.json({ error: 'leaf required' }, { status: 400 });
+      }
     }
 
-    // 同じ問題を繰り返さないため、既存の問題文を渡す
-    const existingPage = await base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 200 });
+    const whole = genre !== 'business' && (!leaf || leaf === WHOLE[genre]);
+    const prefix = genre === 'business' ? 'business' : `${genre}:`;
+
+    const [existingPage, attemptPage] = await Promise.all([
+      base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 200 }),
+      source === 'topic' ? base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 150 }) : null,
+    ]);
+
     const existing = (existingPage.items || []).filter((c) =>
-      source === 'chat' ? c.source === 'chat' : c.domain === domain
+      source === 'chat' ? c.source === 'chat' : c.domain && c.domain.startsWith(prefix)
     );
-    const existingTexts = existing.slice(0, 40).map((c) => (c.text || '').replace(/\s+/g, ' ').slice(0, 60));
+    const existingTexts = existing
+      .slice(0, 40)
+      .map((c) => (c.text || '').replace(/\s+/g, ' ').slice(0, 60));
     const avoid = existingTexts.length ? `\n\n既存の問題（これらと同じ内容は作らない）:\n- ${existingTexts.join('\n- ')}` : '';
+
+    const attempts = ((attemptPage?.items || []).filter((a) =>
+      genre === 'business' ? a.domain === 'business' : (a.domain || '').startsWith(prefix)
+    ));
+    const correct = attempts.filter((a) => a.correct).length;
+    const accuracy = attempts.length ? Math.round((correct / attempts.length) * 100) : 0;
 
     let prompt = '';
 
@@ -106,18 +132,34 @@ export default async function (req) {
 ${RULES}
 - ITの領域から大きく外れない範囲にする。ITそのものでなくても、類推や関連づけが重要で技術の理解や実務判断に効く知識なら含めてよい。
 - 会話で実際に扱われた内容だけを問題にする。会話にない知識で水増ししない。
-- domain は次のどれかを選ぶ: ${ANSWER_DOMAINS.join(', ')}
+- leaf には、その問題が属する技術領域や話題を短い名詞で入れる（例: Python、TCP/IP、セキュリティ）。
 - ${count}問つくる。${avoid}
 
 【会話】
 ${transcript.slice(0, 12000)}`;
     } else {
-      prompt = `あなたはIT技術者の学習問題を作る出題者です。${DOMAIN_LABEL[domain]}の分野で、短い知識確認問題を${count}問作ってください。
+      const target =
+        genre === 'business'
+          ? GENRE_LABEL.business
+          : whole
+            ? `${GENRE_LABEL[genre]}全般`
+            : `${leaf}（${GENRE_LABEL[genre]}）`;
+
+      const leafRule =
+        genre === 'business'
+          ? '- leaf は必ず "ビジネス" にする。'
+          : whole
+            ? `- leaf は次のいずれかから選ぶ: ${leaves.join('、')}`
+            : `- leaf は必ず "${leaf}" にする。`;
+
+      prompt = `あなたはIT技術者の学習問題を作る出題者です。「${target}」の知識確認問題を${count}問作ってください。
 
 ${RULES}
-- 対象は${DOMAIN_LABEL[domain]}。この分野から外れた問題は作らない。
-- domain は必ず "${domain}" にする。
-${angleRule(domain, count)}${avoid}`;
+- 対象は「${target}」。この対象から外れた問題は作らない。
+${leafRule}
+${difficultyRule(count, attempts.length, accuracy)}
+- ${count}問のうち少なくとも1問は basic にする。学習が進んでも基礎を時々確かめるため。
+${genreRule(genre)}${avoid}`;
     }
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -137,7 +179,16 @@ ${angleRule(domain, count)}${avoid}`;
       const key = text.replace(/\s+/g, ' ').slice(0, 40);
       if (seen.has(key)) return;
       seen.add(key);
-      const cardDomain = source === 'topic' ? domain : ANSWER_DOMAINS.includes(c?.domain) ? c.domain : 'ap';
+
+      let cardDomain = 'business';
+      if (source === 'chat') {
+        cardDomain = `tech:${String(c?.leaf || '会話').slice(0, 20)}`;
+      } else if (genre !== 'business') {
+        const picked = whole ? String(c?.leaf || '').slice(0, 30) : leaf;
+        const safeLeaf = leaves.includes(picked) ? picked : picked || leaves[0] || WHOLE[genre];
+        cardDomain = `${genre}:${safeLeaf}`;
+      }
+
       records.push({
         domain: cardDomain,
         topic: String(c?.topic || '').slice(0, 30),
