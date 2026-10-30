@@ -69,11 +69,11 @@ export default function AssistantChat() {
   };
 
   return (
-    <div className="fixed bottom-24 right-3 z-50 flex flex-col items-end gap-2 lg:bottom-6 lg:right-6">
+    <div className="pointer-events-none fixed bottom-24 right-3 z-50 flex flex-col items-end gap-2 lg:bottom-6 lg:right-6">
       {open && (
         <div
           ref={drag.ref}
-          className="relative z-10 h-[min(520px,calc(100dvh-13rem))] w-[min(360px,calc(100vw-1.5rem))]"
+          className="pointer-events-auto relative z-10 h-[min(520px,calc(100dvh-13rem))] w-[min(360px,calc(100vw-1.5rem))]"
           style={{ transform: `translate3d(${drag.offset.x}px, ${drag.offset.y}px, 0)` }}
         >
           <AssistantPanel
@@ -89,7 +89,7 @@ export default function AssistantChat() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card/95 px-3 py-2 text-[11px] text-muted-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40 hover:text-foreground"
+        className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border/70 bg-card/95 px-3 py-2 text-[11px] text-muted-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40 hover:text-foreground"
         title="学習アシスタントに話しかける"
       >
         <Sparkles className="h-3.5 w-3.5 text-primary/80" />
