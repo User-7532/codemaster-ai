@@ -22,7 +22,7 @@ export default function ClozeCard({ card, revealed, onToggle }) {
                 aria-label={revealed ? undefined : '空所を開く'}
               >
                 {/* 隠しているあいだは答えを画面に出さない（切り替え時に一瞬見えるのを防ぐ） */}
-                {revealed ? card.answer : ' '}
+                {revealed ? card.answer : '\u00a0'}
               </button>
             )}
           </span>
