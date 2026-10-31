@@ -54,7 +54,7 @@ export default function MessageSearch({ onPick }) {
               <button
                 key={m.id}
                 type="button"
-                onClick={() => onPick(m.content)}
+                onClick={() => onPick(m)}
                 className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/60"
               >
                 <span className="text-[9.5px] text-muted-foreground/70">
@@ -68,7 +68,7 @@ export default function MessageSearch({ onPick }) {
       )}
 
       <p className="mt-1.5 px-1 text-[9.5px] leading-relaxed text-muted-foreground/70">
-        選ぶと引用として入ります。そのまま質問を続けられます。
+        選ぶと、その発言のところへ移動します。
       </p>
     </div>
   );
