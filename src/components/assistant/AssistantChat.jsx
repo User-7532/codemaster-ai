@@ -33,6 +33,12 @@ const visibleContext = () => {
   return text.slice(0, 1500);
 };
 
+const toMessage = (m) => ({ id: m.id, role: m.role, content: m.content, created_date: m.created_date });
+
+// 古い順に並べる。質問と返事は同じ時刻で保存されるので、同時刻はIDの順（質問が先）にする
+const byTime = (a, b) =>
+  String(a.created_date || '').localeCompare(String(b.created_date || '')) || String(a.id).localeCompare(String(b.id));
+
 export default function AssistantChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState(null);
@@ -43,10 +49,31 @@ export default function AssistantChat() {
   const drag = useDragPosition();
 
   useEffect(() => {
-    base44.entities.AssistantMessage.list({ sort: 'created_date', limit: 60 })
-      .then((page) => setMessages(page.items.map((m) => ({ id: m.id, role: m.role, content: m.content }))))
+    // 新しいほうから60件を取り、古い順に並べ直して表示する
+    base44.entities.AssistantMessage.list({ sort: '-created_date', limit: 60 })
+      .then((page) => setMessages(page.items.map(toMessage).sort(byTime)))
       .catch(() => setMessages([]));
   }, []);
+
+  // 検索で選んだ発言がまだ読み込まれていないとき、その発言から最新までを読み込む
+  const loadFrom = async (iso) => {
+    try {
+      const page = await base44.entities.AssistantMessage.filter(
+        { created_date: { $gte: iso } },
+        { sort: 'created_date', limit: 500 }
+      );
+      const saved = page.items.map(toMessage);
+      setMessages((prev) => {
+        // 送ったばかりでまだ保存されていない発言は残す
+        const unsaved = (prev || []).filter(
+          (m) => /^[ua]-/.test(String(m.id)) && !saved.some((s) => s.role === m.role && s.content === m.content)
+        );
+        return [...saved.sort(byTime), ...unsaved];
+      });
+    } catch (e) {
+      toast({ title: '会話を読み込めませんでした', description: e.message, variant: 'destructive' });
+    }
+  };
 
   // 画面で選んだ文章を受け取り、引用つきの質問として開く
   useEffect(
@@ -96,6 +123,7 @@ export default function AssistantChat() {
             busy={busy}
             onSend={send}
             onClose={() => setOpen(false)}
+            onLoadFrom={loadFrom}
             quote={quote}
             onClearQuote={() => setQuote('')}
             onQuote={setQuote}
