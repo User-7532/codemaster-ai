@@ -40,6 +40,9 @@ export default function Knowledge() {
   const [revealed, setRevealed] = useState(false);
   const [tally, setTally] = useState({ correct: 0, wrong: 0 });
   const [light, setLight] = useState(false);
+  // これまでに間違えたカードだけを出すための集合（カードごとの最新の結果で判定）
+  const [wrongIds, setWrongIds] = useState(new Set());
+  const [wrongOnly, setWrongOnly] = useState(false);
 
   const cardsRef = useRef([]);
   const shownRef = useRef(new Set());
@@ -59,11 +62,23 @@ export default function Knowledge() {
     };
     loadCards();
     base44.entities.KnowledgeTopic.list({ limit: 100 }).then((page) => setCustoms(page.items || []));
+    base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 400 }).then((page) => {
+      const latest = new Map();
+      (page.items || []).forEach((a) => {
+        if (!latest.has(a.card_id)) latest.set(a.card_id, a.correct === true);
+      });
+      setWrongIds(new Set([...latest.entries()].filter(([, ok]) => !ok).map(([id]) => id)));
+    });
   }, []);
 
   const poolFor = (g, l, onlyLight) =>
     shuffle(
-      cardsRef.current.filter((c) => matchesSelection(c, g, l) && (!onlyLight || c.kind !== 'written'))
+      cardsRef.current.filter(
+        (c) =>
+          matchesSelection(c, g, l) &&
+          (!onlyLight || c.kind !== 'written') &&
+          (!wrongOnly || wrongIds.has(c.id))
+      )
     );
 
   const fill = async (g = genre, l = leaf, onlyLight = light) => {
@@ -129,13 +144,13 @@ export default function Knowledge() {
     const pool = poolFor(genre, leaf, light);
     setDeck(pool.slice(0, 8));
     setIdx(0);
-    if (pool.length < 3) fill(genre, leaf, light);
-  }, [genre, leaf, light, ready, focusCard]);
+    if (pool.length < 3 && !wrongOnly) fill(genre, leaf, light);
+  }, [genre, leaf, light, ready, focusCard, wrongOnly]);
 
   const current = deck[idx] || null;
 
   useEffect(() => {
-    if (!ready || busy || current || note) return;
+    if (!ready || busy || current || note || wrongOnly) return;
     if (genre === 'all' && deck.length === 0) return;
     fill();
   }, [ready, busy, current, note, genre, deck.length]);
@@ -150,7 +165,7 @@ export default function Knowledge() {
     const next = idx + 1;
     setIdx(next);
     setRevealed(false);
-    if (next >= deck.length - 1) fill();
+    if (next >= deck.length - 1 && !wrongOnly) fill();
   };
 
   const answer = (correct) => {
@@ -219,6 +234,18 @@ export default function Knowledge() {
           title="急ぐときは記述問題を外して軽い穴埋めだけにします"
         >
           記述を外す
+        </button>
+        <button
+          type="button"
+          onClick={() => setWrongOnly((v) => !v)}
+          className={`rounded-full border px-2.5 py-1 text-[10px] transition-colors ${
+            wrongOnly
+              ? 'border-primary/40 bg-primary/10 text-primary'
+              : 'border-border/70 text-muted-foreground hover:text-foreground'
+          }`}
+          title="これまでに間違えたカードだけで練習します"
+        >
+          まちがえた問題だけ
         </button>
         <span className="ml-auto text-[10px] text-muted-foreground/70">
           正解 {tally.correct} ・ わからなかった {tally.wrong}
@@ -297,9 +324,13 @@ export default function Knowledge() {
         <div className="mt-8 rounded-xl border border-border/60 bg-card/40 p-8 text-center">
           <BookOpen className="mx-auto h-5 w-5 text-muted-foreground/50" />
           <p className="mt-3 text-xs text-muted-foreground">
-            {genre === 'all'
-              ? 'まだカードがありません。分野を選ぶと問題を用意します。'
-              : '問題を用意しています。'}
+            {wrongOnly
+              ? deck.length > 0
+                ? 'この範囲で間違えたカードは、ここまでです。'
+                : 'まだ間違えたカードがありません。ふつうに解くと、ここにたまります。'
+              : genre === 'all'
+                ? 'まだカードがありません。分野を選ぶと問題を用意します。'
+                : '問題を用意しています。'}
           </p>
         </div>
       )}

@@ -98,6 +98,7 @@ export default function AssistantChat() {
             onClose={() => setOpen(false)}
             quote={quote}
             onClearQuote={() => setQuote('')}
+            onQuote={setQuote}
             dragProps={drag.dragProps}
             dragging={drag.dragging}
           />

@@ -5,8 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { todayISO } from '@/lib/srs';
 import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
-import ClozeCard from '@/components/knowledge/ClozeCard';
-import WrittenCard from '@/components/knowledge/WrittenCard';
+import SessionRunner from '@/components/review/SessionRunner';
 
 const TABS = [
   { id: 'due', label: '今日の復習' },
@@ -83,6 +82,29 @@ export default function Review() {
     setRevealed(false);
   };
 
+  // 今日の復習を、重いコード問題は飛ばしながら一気に通す
+  const startDue = () => {
+    if (due.length === 0) return;
+    const queue = due
+      .filter((i) => i.item_type !== 'knowledge' || cards[i.item_id])
+      .map((i) =>
+        i.item_type === 'knowledge'
+          ? { type: 'knowledge', item: i, card: cards[i.item_id] }
+          : { type: 'problem', item: { id: i.item_id, title: i.title || '復習の問題' }, mode: 'review' }
+      );
+    if (queue.length === 0) return;
+    setSession(queue);
+    setIdx(0);
+    setRevealed(false);
+  };
+
+  const resetSession = () => {
+    clearSession();
+    setSession(null);
+    setIdx(0);
+    setRevealed(false);
+  };
+
   const answerKnowledge = (correct) => {
     const current = session[idx];
     recordKnowledgeAnswer(current.card, correct, 'mixed');
@@ -97,8 +119,6 @@ export default function Review() {
       </div>
     );
   }
-
-  const current = session && idx < session.length ? session[idx] : null;
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-12">
@@ -125,18 +145,47 @@ export default function Review() {
         ))}
       </div>
 
-      {tab === 'due' && (
-        <div className="mt-5 space-y-2">
-          {due.length === 0 ? (
-            <Empty
-              icon={CalendarClock}
-              text="今日の復習はありません。新しい問題を解くか、集中復習に進みましょう。"
+      {tab === 'due' &&
+        (session ? (
+          <div className="mt-5">
+            <SessionRunner
+              session={session}
+              idx={idx}
+              revealed={revealed}
+              onToggle={() => setRevealed((v) => !v)}
+              onAnswer={answerKnowledge}
+              onSkip={() => {
+                setRevealed(false);
+                setIdx((i) => i + 1);
+              }}
+              onReset={resetSession}
             />
-          ) : (
-            due.map((i) => <Row key={i.id} item={i} card={cards[i.item_id]} />)
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="mt-5 space-y-2">
+            <button
+              type="button"
+              onClick={startDue}
+              disabled={due.length === 0}
+              className="w-full rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              今日の復習をまとめて始める（{due.length}件）
+            </button>
+            {due.length === 0 ? (
+              <Empty
+                icon={CalendarClock}
+                text="今日の復習はありません。新しい問題を解くか、集中復習に進みましょう。"
+              />
+            ) : (
+              <>
+                <p className="px-1 text-[10px] leading-relaxed text-muted-foreground/70">
+                  コード問題は重いので、途中の「飛ばす」で先へ進めます。
+                </p>
+                {due.map((i) => <Row key={i.id} item={i} card={cards[i.item_id]} />)}
+              </>
+            )}
+          </div>
+        ))}
 
       {tab === 'weak' && (
         <div className="mt-5 space-y-2">
@@ -184,90 +233,19 @@ export default function Review() {
                 </p>
               )}
             </div>
-          ) : !current ? (
-            <div className="rounded-xl border border-border/60 bg-card/40 p-8 text-center">
-              <p className="text-xs text-muted-foreground">セッションはここまでです。</p>
-              <button
-                type="button"
-                onClick={() => {
-                  clearSession();
-                  setSession(null);
-                  setIdx(0);
-                }}
-                className="mt-3 text-[11px] text-primary hover:underline"
-              >
-                最初に戻る
-              </button>
-            </div>
           ) : (
-            <div>
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>
-                  {idx + 1} / {session.length}
-                </span>
-                <span>{current.type === 'knowledge' ? '知識' : 'コード'}</span>
-              </div>
-              {current.type === 'knowledge' ? (
-                current.card.kind === 'written' ? (
-                  <div className="mt-3">
-                    <WrittenCard
-                      key={current.card.id}
-                      card={current.card}
-                      onResult={answerKnowledge}
-                      onSkip={() => setIdx((i) => i + 1)}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="mt-3">
-                      <ClozeCard
-                        card={current.card}
-                        revealed={revealed}
-                        onToggle={() => setRevealed((v) => !v)}
-                      />
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => answerKnowledge(false)}
-                        className="flex-1 rounded-lg border border-rose-700/25 bg-rose-500/10 py-2.5 text-[11px] text-rose-700"
-                      >
-                        わからなかった
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => answerKnowledge(true)}
-                        className="flex-1 rounded-lg border border-teal-700/25 bg-teal-500/10 py-2.5 text-[11px] text-teal-700"
-                      >
-                        言えた
-                      </button>
-                    </div>
-                  </>
-                )
-              ) : (
-                <div className="mt-3 rounded-xl border border-border/60 bg-card/40 p-5">
-                  <p className="text-[13px]">{current.item.title}</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    誤答率 {current.item.rate}%（{current.item.wrong} / {current.item.total}）
-                  </p>
-                  <div className="mt-4 flex gap-2">
-                    <Link
-                      to={`/solve/${current.item.id}?mode=mixed`}
-                      className="flex-1 rounded-lg bg-primary py-2.5 text-center text-[11px] font-medium text-primary-foreground"
-                    >
-                      この問題を解く
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setIdx((i) => i + 1)}
-                      className="rounded-lg border border-border/70 px-3 py-2.5 text-[11px] text-muted-foreground"
-                    >
-                      あとで
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <SessionRunner
+              session={session}
+              idx={idx}
+              revealed={revealed}
+              onToggle={() => setRevealed((v) => !v)}
+              onAnswer={answerKnowledge}
+              onSkip={() => {
+                setRevealed(false);
+                setIdx((i) => i + 1);
+              }}
+              onReset={resetSession}
+            />
           )}
         </div>
       )}

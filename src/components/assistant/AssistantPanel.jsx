@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { GripHorizontal, Loader2, Quote, Send, X } from 'lucide-react';
+import { GripHorizontal, Loader2, Quote, Search, Send, X } from 'lucide-react';
+import MessageSearch from '@/components/assistant/MessageSearch';
 
 const CHIPS_NORMAL = [
   '記録から、私に役立つことを教えて',
@@ -16,10 +17,12 @@ export default function AssistantPanel({
   onClose,
   quote = '',
   onClearQuote,
+  onQuote,
   dragProps,
   dragging,
 }) {
   const [draft, setDraft] = useState('');
+  const [searching, setSearching] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -72,16 +75,38 @@ export default function AssistantPanel({
           <p className="text-[11px] font-medium text-foreground">学習アシスタント</p>
           <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground/60" />
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-          title="閉じる"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setSearching((v) => !v)}
+            onPointerDown={(e) => e.stopPropagation()}
+            className={`rounded-full p-1 transition-colors hover:bg-accent/60 hover:text-foreground ${
+              searching ? 'text-primary' : 'text-muted-foreground'
+            }`}
+            title="これまでの会話を検索"
+          >
+            <Search className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+            title="閉じる"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
+
+      {searching && (
+        <MessageSearch
+          onPick={(text) => {
+            onQuote?.(text);
+            setSearching(false);
+          }}
+        />
+      )}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3">
         {messages === null ? (
