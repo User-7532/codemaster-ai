@@ -48,7 +48,7 @@ export default function SessionRunner({ session, idx, revealed, onToggle, onAnsw
         ) : (
           <>
             <div className="mt-3">
-              <ClozeCard card={current.card} revealed={revealed} onToggle={onToggle} />
+              <ClozeCard key={current.card.id} card={current.card} revealed={revealed} onToggle={onToggle} />
             </div>
             <div className="mt-3 flex gap-2">
               <button
