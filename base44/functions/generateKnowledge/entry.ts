@@ -23,10 +23,12 @@ const CARD_SCHEMA = {
           text: { type: 'string' },
           answer: { type: 'string' },
           model_answer: { type: 'string' },
+          // 解答者が自分で答えるべき語句。問題文に出ていないかの確認に使う（保存はしない）
+          target_terms: { type: 'array', items: { type: 'string' } },
           explanation: { type: 'string' },
           difficulty: { type: 'string', enum: ['basic', 'intermediate', 'advanced'] },
         },
-        required: ['leaf', 'topic', 'kind', 'text', 'answer', 'explanation', 'difficulty'],
+        required: ['leaf', 'topic', 'kind', 'text', 'answer', 'target_terms', 'explanation', 'difficulty'],
       },
     },
   },
@@ -40,7 +42,43 @@ const RULES = `共通の書式:
 - explanation は1〜2文で、なぜそうなるかを平易に説明する。
 - 日本語で書く。技術用語は正確な標準用語を使い、比喩や曖昧な言い換えはしない。
 - 1問は短く。冗長な前置きや同じ内容の繰り返しは入れない。
-- 頭字語（TLS、SLA、ROI、CAP、CSRF など）を問う written では、問題文で「頭字語と正式名称の両方」を答えるよう明示する。model_answer は必ず「頭字語（英語の正式名称、日本語での呼び名）」の形でフルネームを書き、そのあとに説明を続ける。answer にも正式名称の要点を10〜20字で入れる。`;
+- 問題文に答えを書かない。空所に入る語句、答えさせたい名前・略称・正式名称、その一部（例: 答えが「セッション層」なら「セッション」）や英語表記・括弧書きの補足も、問題文には入れない。
+- target_terms には、解答者が自分で答えるべき語句（cloze の空所の語句、名前を答えさせる問いではその名前・略称・正式名称）をすべて入れる。仕組みや理由を説明させる問いで、主題として問題文に出てよい語は入れない。
+- 頭字語（TLS、SLA、ROI、CAP、CSRF など）を問う written は次のどちらかの形にする。(1) 問題文では頭字語も正式名称も出さず、役割や特徴で説明したうえで「略称と正式名称の両方」を答えさせる。(2) 問題文で頭字語だけを示し、正式名称を答えさせる（正式名称は問題文に書かない）。model_answer は必ず「頭字語（英語の正式名称、日本語での呼び名）」の形でフルネームを書き、そのあとに説明を続ける。answer にも正式名称の要点を10〜20字で入れる。`;
+
+// 答えの語句が問題文に出ている問題（例:「TCP（Transmission Control Protocol）の正式名称を答えよ」）を見つける
+const normalize = (s) =>
+  String(s || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\s・･\-‐_]/g, '');
+
+function answerTerms(card) {
+  const sources = [
+    ...(card.kind === 'cloze' ? [card.answer] : []),
+    ...(Array.isArray(card.target_terms) ? card.target_terms : []),
+  ];
+  const terms = [];
+  sources.forEach((value) => {
+    String(value || '')
+      .normalize('NFKC')
+      .split(/[()、,，/]/)
+      .forEach((part) => {
+        const t = normalize(part);
+        if (!t) return;
+        terms.push(t);
+        // 「○○層」が答えなら「○○」だけでも答えになる
+        if (t.length > 2 && t.endsWith('層')) terms.push(t.slice(0, -1));
+      });
+  });
+  // 1文字の語や数字だけの語は偶然一致しやすいので見ない
+  return terms.filter((t) => t.length >= 2 && !/^[0-9.]+$/.test(t));
+}
+
+function leaksAnswer(text, card) {
+  const body = normalize(text.replace(/___/g, ' '));
+  return answerTerms(card).some((term) => body.includes(term));
+}
 
 function genreRule(genre) {
   if (genre === 'tech') {
@@ -185,6 +223,7 @@ ${genreRule(genre)}${avoid}`;
       if (text.length < 12) return;
       const kind = c?.kind === 'written' ? 'written' : 'cloze';
       if (kind === 'cloze' && !text.includes('___')) return;
+      if (leaksAnswer(text, { ...c, kind })) return;
       const key = text.replace(/\s+/g, ' ').slice(0, 40);
       if (seen.has(key)) return;
       seen.add(key);
