@@ -23,8 +23,6 @@ export default function AssistantPanel({
 }) {
   const [draft, setDraft] = useState('');
   const [searching, setSearching] = useState(false);
-  // 検索結果から飛んだメッセージ。少しの間だけ目印を付ける
-  const [focusId, setFocusId] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const msgRefs = useRef({});
@@ -33,15 +31,13 @@ export default function AssistantPanel({
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, [messages, busy]);
 
-  // 検索で選んだ発言の位置までスクロールする
-  useEffect(() => {
-    if (!focusId) return;
-    const el = msgRefs.current[focusId];
-    if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    const timer = setTimeout(() => setFocusId(null), 2400);
-    return () => clearTimeout(timer);
-  }, [focusId, messages]);
+  // 検索候補を閉じてから、選んだ発言の位置までスクロールする
+  const jumpTo = (id) => {
+    setSearching(false);
+    setTimeout(() => {
+      msgRefs.current[id]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 0);
+  };
 
   // 開いたとき・引用が入ったときに、すぐ入力できるようキャレットを置く
   useEffect(() => {
@@ -113,7 +109,7 @@ export default function AssistantPanel({
       </div>
 
       {searching && (
-        <MessageSearch onPick={(m) => setFocusId(m.id)} />
+        <MessageSearch onPick={(m) => jumpTo(m.id)} />
       )}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3">
@@ -137,11 +133,11 @@ export default function AssistantPanel({
               className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
             >
               <div
-                className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-3 py-2 text-[12px] leading-relaxed transition-shadow ${
+                className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === 'user'
                     ? 'bg-primary/12 text-foreground'
                     : 'border border-border/60 bg-background/70 text-foreground/90'
-                } ${focusId === m.id ? 'ring-2 ring-primary/50' : ''}`}
+                }`}
               >
                 {m.quote && (
                   <p className="mb-1.5 border-l-2 border-primary/40 pl-2 text-[10px] leading-relaxed text-muted-foreground">
