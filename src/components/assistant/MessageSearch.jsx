@@ -7,6 +7,9 @@ const stampOf = (iso) => {
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
+// 「C++」「O(n)」などの記号を、正規表現ではなく文字そのものとして探す
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export default function MessageSearch({ onPick }) {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState(null);
@@ -22,7 +25,7 @@ export default function MessageSearch({ onPick }) {
     setBusy(true);
     // 打つたびに問い合わせないよう、少し待ってから検索する
     const timer = setTimeout(() => {
-      base44.entities.AssistantMessage.filter({ content: { $regex: text } }, { sort: '-created_date', limit: 8 })
+      base44.entities.AssistantMessage.filter({ content: { $regex: escapeRegex(text) } }, { sort: '-created_date', limit: 8 })
         .then((page) => setHits(page.items || []))
         .catch(() => setHits([]))
         .finally(() => setBusy(false));
