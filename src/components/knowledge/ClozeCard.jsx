@@ -19,9 +19,10 @@ export default function ClozeCard({ card, revealed, onToggle }) {
                 type="button"
                 onClick={onToggle}
                 className={revealed ? 'cloze-shown mx-0.5 font-medium' : 'cloze-hidden mx-0.5 px-6'}
-                aria-label="空所を開く"
+                aria-label={revealed ? undefined : '空所を開く'}
               >
-                {card.answer}
+                {/* 隠しているあいだは答えを画面に出さない（切り替え時に一瞬見えるのを防ぐ） */}
+                {revealed ? card.answer : ' '}
               </button>
             )}
           </span>
