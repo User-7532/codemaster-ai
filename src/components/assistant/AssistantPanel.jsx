@@ -15,6 +15,7 @@ export default function AssistantPanel({
   busy,
   onSend,
   onClose,
+  onLoadFrom,
   quote = '',
   onClearQuote,
   onQuote,
@@ -26,17 +27,37 @@ export default function AssistantPanel({
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const msgRefs = useRef({});
+  // 読み込みを待ってから移動する発言のID
+  const pendingJump = useRef(null);
+
+  const scrollToMessage = (id) => {
+    const el = msgRefs.current[id];
+    if (!el) return false;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return true;
+  };
 
   useEffect(() => {
+    // 検索から移動する途中なら、最下部ではなくその発言へ移動する
+    if (pendingJump.current) {
+      scrollToMessage(pendingJump.current);
+      pendingJump.current = null;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, [messages, busy]);
 
-  // 検索候補を閉じてから、選んだ発言の位置までスクロールする
-  const jumpTo = (id) => {
+  // 検索候補を閉じてから、選んだ発言の位置までスクロールする（目印は付けない）
+  const jumpTo = (m) => {
     setSearching(false);
-    setTimeout(() => {
-      msgRefs.current[id]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }, 0);
+    if (msgRefs.current[m.id]) {
+      setTimeout(() => scrollToMessage(m.id), 0);
+      return;
+    }
+    // 画面にまだない古い発言は、読み込んでから移動する
+    if (!onLoadFrom || !m.created_date) return;
+    pendingJump.current = m.id;
+    onLoadFrom(m.created_date);
   };
 
   // 開いたとき・引用が入ったときに、すぐ入力できるようキャレットを置く
@@ -109,7 +130,7 @@ export default function AssistantPanel({
       </div>
 
       {searching && (
-        <MessageSearch onPick={(m) => jumpTo(m.id)} />
+        <MessageSearch onPick={jumpTo} />
       )}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3">
