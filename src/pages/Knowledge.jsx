@@ -43,6 +43,9 @@ export default function Knowledge() {
   // これまでに間違えたカードだけを出すための集合（カードごとの最新の結果で判定）
   const [wrongIds, setWrongIds] = useState(new Set());
   const [wrongOnly, setWrongOnly] = useState(false);
+  // 一度でも答えたカードの集合。初見のカードだけを出すときに使う
+  const [seenIds, setSeenIds] = useState(new Set());
+  const [unseenOnly, setUnseenOnly] = useState(false);
 
   const cardsRef = useRef([]);
   const shownRef = useRef(new Set());
@@ -51,7 +54,18 @@ export default function Knowledge() {
 
   useEffect(() => {
     const loadCards = async () => {
-      const page = await base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 300 });
+      // 答えた記録を先に読み込んでから出題を始める（初見の判定がずれないように）
+      const [page, attemptPage] = await Promise.all([
+        base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 300 }),
+        base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 1000 }).catch(() => ({ items: [] })),
+      ]);
+      const attempts = attemptPage.items || [];
+      const latest = new Map();
+      attempts.forEach((a) => {
+        if (!latest.has(a.card_id)) latest.set(a.card_id, a.correct === true);
+      });
+      setWrongIds(new Set([...latest.entries()].filter(([, ok]) => !ok).map(([id]) => id)));
+      setSeenIds(new Set(latest.keys()));
       cardsRef.current = page.items || [];
       if (focusId) {
         const found = cardsRef.current.find((c) => c.id === focusId);
@@ -62,13 +76,6 @@ export default function Knowledge() {
     };
     loadCards();
     base44.entities.KnowledgeTopic.list({ limit: 100 }).then((page) => setCustoms(page.items || []));
-    base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 400 }).then((page) => {
-      const latest = new Map();
-      (page.items || []).forEach((a) => {
-        if (!latest.has(a.card_id)) latest.set(a.card_id, a.correct === true);
-      });
-      setWrongIds(new Set([...latest.entries()].filter(([, ok]) => !ok).map(([id]) => id)));
-    });
   }, []);
 
   const poolFor = (g, l, onlyLight) =>
@@ -77,7 +84,8 @@ export default function Knowledge() {
         (c) =>
           matchesSelection(c, g, l) &&
           (!onlyLight || c.kind !== 'written') &&
-          (!wrongOnly || wrongIds.has(c.id))
+          (!wrongOnly || wrongIds.has(c.id)) &&
+          (!unseenOnly || !seenIds.has(c.id))
       )
     );
 
@@ -145,7 +153,7 @@ export default function Knowledge() {
     setDeck(pool.slice(0, 8));
     setIdx(0);
     if (pool.length < 3 && !wrongOnly) fill(genre, leaf, light);
-  }, [genre, leaf, light, ready, focusCard, wrongOnly]);
+  }, [genre, leaf, light, ready, focusCard, wrongOnly, unseenOnly]);
 
   const current = deck[idx] || null;
 
@@ -173,6 +181,8 @@ export default function Knowledge() {
     shownRef.current.add(current.id);
     setTally((t) => ({ correct: t.correct + (correct ? 1 : 0), wrong: t.wrong + (correct ? 0 : 1) }));
     recordKnowledgeAnswer(current, correct, 'knowledge');
+    // 答えたカードは、もう初見ではない
+    setSeenIds((prev) => new Set(prev).add(current.id));
     advance();
   };
 
@@ -237,7 +247,11 @@ export default function Knowledge() {
         </button>
         <button
           type="button"
-          onClick={() => setWrongOnly((v) => !v)}
+          onClick={() => {
+            // 間違えたカードは初見ではないので、2つは同時にオンにしない
+            setWrongOnly((v) => !v);
+            setUnseenOnly(false);
+          }}
           className={`rounded-full border px-2.5 py-1 text-[10px] transition-colors ${
             wrongOnly
               ? 'border-primary/40 bg-primary/10 text-primary'
@@ -246,6 +260,21 @@ export default function Knowledge() {
           title="これまでに間違えたカードだけで練習します"
         >
           まちがえた問題だけ
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setUnseenOnly((v) => !v);
+            setWrongOnly(false);
+          }}
+          className={`rounded-full border px-2.5 py-1 text-[10px] transition-colors ${
+            unseenOnly
+              ? 'border-primary/40 bg-primary/10 text-primary'
+              : 'border-border/70 text-muted-foreground hover:text-foreground'
+          }`}
+          title="まだ一度も答えていないカードだけで練習します"
+        >
+          初見問題だけ
         </button>
         <span className="ml-auto text-[10px] text-muted-foreground/70">
           正解 {tally.correct} ・ わからなかった {tally.wrong}
@@ -329,7 +358,9 @@ export default function Knowledge() {
                 ? 'この範囲で間違えたカードは、ここまでです。'
                 : 'まだ間違えたカードがありません。ふつうに解くと、ここにたまります。'
               : genre === 'all'
-                ? 'まだカードがありません。分野を選ぶと問題を用意します。'
+                ? unseenOnly
+                  ? 'この範囲に初見のカードはありません。分野を選ぶと、新しい問題を用意します。'
+                  : 'まだカードがありません。分野を選ぶと問題を用意します。'
                 : '問題を用意しています。'}
           </p>
         </div>
