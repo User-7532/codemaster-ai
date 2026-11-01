@@ -57,7 +57,10 @@ export default function Knowledge() {
       // 答えた記録を先に読み込んでから出題を始める（初見の判定がずれないように）
       const [page, attemptPage] = await Promise.all([
         base44.entities.KnowledgeCard.list({ sort: '-created_date', limit: 300 }),
-        base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 1000 }).catch(() => ({ items: [] })),
+        // 多めに読む。件数の上限で断られたときは、これまでどおり400件で読む
+        base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 1000 })
+          .catch(() => base44.entities.KnowledgeAttempt.list({ sort: '-created_date', limit: 400 }))
+          .catch(() => ({ items: [] })),
       ]);
       const attempts = attemptPage.items || [];
       const latest = new Map();
