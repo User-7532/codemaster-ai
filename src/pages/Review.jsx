@@ -253,7 +253,7 @@ export default function Review() {
                   e.item.rate !== undefined ? (
                     <WeakRow key={keyOf(e)} problem={e.item} />
                   ) : (
-                    <Row key={keyOf(e)} item={e.item.item_id ? e.item : due.find((i) => i.item_id === e.item.id)} card={e.card} />
+                    <Row key={keyOf(e)} item={e.item.item_id ? e.item : due.find((i) => i.item_type === 'problem' && i.item_id === e.item.id)} card={e.card} />
                   )
                 )}
               </>
