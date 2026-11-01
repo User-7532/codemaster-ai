@@ -7,6 +7,21 @@ import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import SessionRunner from '@/components/review/SessionRunner';
 
+// 今日の復習の絞り込み。次に開いたときも同じ設定で始められるよう保存する
+const FILTER_KEY = 'codemaster-due-filter';
+const loadFilter = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
+    return { wrongOnly: !!v.wrongOnly, skipHeavy: !!v.skipHeavy };
+  } catch {
+    return { wrongOnly: false, skipHeavy: false };
+  }
+};
+const DUE_FILTERS = [
+  { id: 'wrongOnly', label: '間違えた問題だけ', note: '前回まちがえたものだけを出します' },
+  { id: 'skipHeavy', label: '重い問題を飛ばす', note: 'コード問題を外して、知識カードだけにします' },
+];
+
 const TABS = [
   { id: 'due', label: '今日の復習' },
   { id: 'weak', label: '集中復習' },
@@ -24,6 +39,18 @@ export default function Review() {
   const [session, setSession] = useState(() => loadSession()?.queue || null);
   const [idx, setIdx] = useState(() => loadSession()?.idx || 0);
   const [revealed, setRevealed] = useState(false);
+  const [dueFilter, setDueFilter] = useState(loadFilter);
+
+  const toggleFilter = (id) =>
+    setDueFilter((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem(FILTER_KEY, JSON.stringify(next));
+      } catch {
+        // 保存できなくても絞り込み自体は使える
+      }
+      return next;
+    });
 
   useEffect(() => {
     if (session) saveSession(session, idx);
@@ -49,6 +76,11 @@ export default function Review() {
   const today = todayISO();
   const due = (items || []).filter((i) => i.due_date <= today);
   const upcoming = (items || []).filter((i) => i.due_date > today);
+  // 絞り込みを反映した今日の復習
+  const dueShown = due.filter(
+    (i) => (!dueFilter.wrongOnly || i.last_result === 'wrong') && (!dueFilter.skipHeavy || i.item_type === 'knowledge')
+  );
+  const filtering = dueFilter.wrongOnly || dueFilter.skipHeavy;
 
   const weakProblems = useMemo(() => {
     const acc = {};
@@ -84,8 +116,8 @@ export default function Review() {
 
   // 今日の復習を、重いコード問題は飛ばしながら一気に通す
   const startDue = () => {
-    if (due.length === 0) return;
-    const queue = due
+    if (dueShown.length === 0) return;
+    const queue = dueShown
       .filter((i) => i.item_type !== 'knowledge' || cards[i.item_id])
       .map((i) =>
         i.item_type === 'knowledge'
@@ -163,25 +195,54 @@ export default function Review() {
           </div>
         ) : (
           <div className="mt-5 space-y-2">
+            {due.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                {DUE_FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => toggleFilter(f.id)}
+                    aria-pressed={dueFilter[f.id]}
+                    title={f.note}
+                    className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${
+                      dueFilter[f.id]
+                        ? 'border-primary/40 bg-primary/15 text-primary'
+                        : 'border-border/70 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+                {filtering && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {due.length}件中 {dueShown.length}件
+                  </span>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={startDue}
-              disabled={due.length === 0}
+              disabled={dueShown.length === 0}
               className="w-full rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              今日の復習をまとめて始める（{due.length}件）
+              今日の復習をまとめて始める（{dueShown.length}件）
             </button>
             {due.length === 0 ? (
               <Empty
                 icon={CalendarClock}
                 text="今日の復習はありません。新しい問題を解くか、集中復習に進みましょう。"
               />
+            ) : dueShown.length === 0 ? (
+              <Empty icon={CalendarClock} text="この条件に合う今日の復習はありません。絞り込みを外すと、残りの復習が出ます。" />
             ) : (
               <>
-                <p className="px-1 text-[10px] leading-relaxed text-muted-foreground/70">
-                  コード問題は重いので、途中の「飛ばす」で先へ進めます。
-                </p>
-                {due.map((i) => <Row key={i.id} item={i} card={cards[i.item_id]} />)}
+                {!dueFilter.skipHeavy && (
+                  <p className="px-1 text-[10px] leading-relaxed text-muted-foreground/70">
+                    コード問題は重いので、途中の「飛ばす」で先へ進めます。
+                  </p>
+                )}
+                {dueShown.map((i) => <Row key={i.id} item={i} card={cards[i.item_id]} />)}
               </>
             )}
           </div>
