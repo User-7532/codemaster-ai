@@ -33,7 +33,7 @@ const visibleContext = () => {
   return text.slice(0, 1500);
 };
 
-const toMessage = (m) => ({ id: m.id, role: m.role, content: m.content, created_date: m.created_date });
+const toMessage = (m) => ({ id: m.id, role: m.role, content: m.content, quote: m.quote || '', created_date: m.created_date });
 
 // 古い順に並べる。質問と返事は同じ時刻で保存されるので、同時刻はIDの順（質問が先）にする
 const byTime = (a, b) =>

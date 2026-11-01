@@ -89,7 +89,7 @@ export default async function (req) {
 
     const historyAsc = history.slice().reverse();
     const recentTalk = historyAsc
-      .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${String(m.content).slice(0, 500)}`)
+      .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${m.quote ? `（引用「${String(m.quote).slice(0, 200)}」について）` : ''}${String(m.content).slice(0, 500)}`)
       .join('\n');
 
     const prompt = `あなたは「CodeMaster AI」の学習アシスタントです。本人の学習状況と、いま見ている画面の内容を踏まえて会話します。
@@ -142,7 +142,7 @@ ${quote ? `「${quote}」` : '（引用なし）'}
     const text = String(reply || '').trim() || 'うまく答えを作れませんでした。もう一度話しかけてください。';
 
     const created = await base44.entities.AssistantMessage.bulkCreate([
-      { role: 'user', content: message },
+      { role: 'user', content: message, quote },
       { role: 'assistant', content: text },
     ]);
     const createdList = Array.isArray(created) ? created : created?.items || [];
@@ -153,16 +153,16 @@ ${quote ? `「${quote}」` : '（引用なし）'}
       const fresh = [
         ...(since ? historyAsc.filter((m) => m.created_date > since) : historyAsc),
         ...(createdList.length
-          ? createdList.map((m) => ({ role: m.role, content: m.content, created_date: m.created_date }))
+          ? createdList.map((m) => ({ role: m.role, content: m.content, quote: m.quote || '', created_date: m.created_date }))
           : [
-              { role: 'user', content: message, created_date: new Date().toISOString() },
+              { role: 'user', content: message, quote, created_date: new Date().toISOString() },
               { role: 'assistant', content: text, created_date: new Date().toISOString() },
             ]),
       ];
 
       if (fresh.length > 0) {
         const talk = fresh
-          .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${String(m.content).slice(0, 400)}`)
+          .map((m) => `${m.role === 'user' ? '本人' : 'あなた'}: ${m.quote ? `（引用「${String(m.quote).slice(0, 200)}」について）` : ''}${String(m.content).slice(0, 400)}`)
           .join('\n');
 
         const digest = [

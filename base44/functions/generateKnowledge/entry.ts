@@ -168,7 +168,7 @@ export default async function (req) {
       );
       const msgs = (msgPage.items || []).slice().reverse();
       const transcript = msgs
-        .map((m) => `${m.role === 'user' ? '利用者' : 'アシスタント'}: ${(m.content || '').slice(0, 600)}`)
+        .map((m) => `${m.role === 'user' ? '利用者' : 'アシスタント'}: ${m.quote ? `（引用「${String(m.quote).slice(0, 200)}」について）` : ''}${(m.content || '').slice(0, 600)}`)
         .join('\n');
       if (transcript.length < 40) {
         return Response.json({ cards: [], reason: '会話がまだ短いため作れませんでした' });

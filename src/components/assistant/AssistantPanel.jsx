@@ -8,7 +8,7 @@ const CHIPS_NORMAL = [
   '今日の進み具合を、やさしく評価して',
   '息抜きに、興味のありそうな話をして',
 ];
-const CHIPS_QUOTE = ['どういう意味？', '詳しく説明して'];
+const CHIPS_QUOTE = ['どういう意味？', '詳しく説明して', 'なぜ？'];
 
 export default function AssistantPanel({
   messages,
