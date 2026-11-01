@@ -138,9 +138,10 @@ export default function Workspace() {
     }
   };
 
-  // 復習・混在セッションでは、解き終えたら一覧ではなく復習の続きへ戻す
+  // 復習では、解き終えたら一覧ではなく復習の続きへ戻す。
+  // この問題が復習セッションの現在地なら、次の項目へ進めておく
   const goNext = () => {
-    if (mode === 'mixed') completeSessionProblem(problem.id);
+    if (mode === 'mixed' || mode === 'review') completeSessionProblem(problem.id);
     navigate('/review');
   };
 

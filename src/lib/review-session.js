@@ -1,4 +1,4 @@
-// 混在セッションの途中経過を、問題を解きに行っても失わないように保持する
+// 今日の復習のセッションの途中経過を、問題を解きに行っても失わないように保持する
 const KEY = 'codemaster-mixed-session';
 
 export const loadSession = () => {

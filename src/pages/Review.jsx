@@ -1,46 +1,60 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarClock, Flame, Layers, Loader2, Shuffle } from 'lucide-react';
+import { ArrowRight, CalendarClock, Flame, Layers, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { todayISO } from '@/lib/srs';
 import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import SessionRunner from '@/components/review/SessionRunner';
 
-// 今日の復習の絞り込み。次に開いたときも同じ設定で始められるよう保存する
+// 今日の復習の切り替え。次に開いたときも同じ設定で始められるよう保存する
 const FILTER_KEY = 'codemaster-due-filter';
+const FILTER_IDS = ['wrongOnly', 'skipHeavy', 'addWeak', 'shuffle'];
 const loadFilter = () => {
   try {
     const v = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
-    return { wrongOnly: !!v.wrongOnly, skipHeavy: !!v.skipHeavy };
+    return Object.fromEntries(FILTER_IDS.map((id) => [id, !!v[id]]));
   } catch {
-    return { wrongOnly: false, skipHeavy: false };
+    return Object.fromEntries(FILTER_IDS.map((id) => [id, false]));
   }
 };
 const DUE_FILTERS = [
   { id: 'wrongOnly', label: '間違えた問題だけ', note: '前回まちがえたものだけを出します' },
   { id: 'skipHeavy', label: '重い問題を飛ばす', note: 'コード問題を外して、知識カードだけにします' },
+  { id: 'addWeak', label: '苦手なコード問題も足す', note: '今日が復習日でなくても、間違いの多いコード問題を最大4問足します' },
+  { id: 'shuffle', label: '順番をシャッフル', note: '期日順ではなく、ばらばらの順番で出します' },
 ];
+const WEAK_EXTRA = 4;
 
 const TABS = [
   { id: 'due', label: '今日の復習' },
   { id: 'weak', label: '集中復習' },
-  { id: 'mixed', label: '混在セッション' },
   { id: 'upcoming', label: 'この先の予定' },
 ];
+
+const shuffled = (list) => {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+// セッションの項目を見分けるための鍵（知識カードとコード問題で別にする）
+const keyOf = (entry) => (entry.type === 'knowledge' ? `k:${entry.item?.item_id}` : `p:${entry.item?.id}`);
 
 export default function Review() {
   const [items, setItems] = useState(null);
   const [subs, setSubs] = useState([]);
   const [cards, setCards] = useState({});
-  const [tab, setTab] = useState(() => (loadSession() ? 'mixed' : 'due'));
+  const [tab, setTab] = useState('due');
 
   // 問題を解きに行って戻ってきたときは、続きから再開する
   const [session, setSession] = useState(() => loadSession()?.queue || null);
   const [idx, setIdx] = useState(() => loadSession()?.idx || 0);
   const [revealed, setRevealed] = useState(false);
   const [dueFilter, setDueFilter] = useState(loadFilter);
-
 
   useEffect(() => {
     if (session) saveSession(session, idx);
@@ -66,47 +80,12 @@ export default function Review() {
   const today = todayISO();
   const due = (items || []).filter((i) => i.due_date <= today);
   const upcoming = (items || []).filter((i) => i.due_date > today);
-  // 絞り込みを反映した今日の復習
-  const matchFilter = (f) => (i) =>
-    (!f.wrongOnly || i.last_result === 'wrong') && (!f.skipHeavy || i.item_type === 'knowledge');
-  const dueShown = due.filter(matchFilter(dueFilter));
-  const filtering = dueFilter.wrongOnly || dueFilter.skipHeavy;
 
-  const buildDueQueue = (f) =>
-    due
-      .filter(matchFilter(f))
-      .filter((i) => i.item_type !== 'knowledge' || cards[i.item_id])
-      .map((i) =>
-        i.item_type === 'knowledge'
-          ? { type: 'knowledge', item: i, card: cards[i.item_id] }
-          : { type: 'problem', item: { id: i.item_id, title: i.title || '復習の問題' }, mode: 'review' }
-      );
-
-  // セッションの項目を見分けるための鍵（知識カードとコード問題で別にする）
-  const keyOf = (entry) => (entry.type === 'knowledge' ? `k:${entry.item?.item_id}` : `p:${entry.item?.id}`);
-
-  const toggleFilter = (id) => {
-    const next = { ...dueFilter, [id]: !dueFilter[id] };
-    setDueFilter(next);
-    try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify(next));
-    } catch {
-      // 保存できなくても絞り込み自体は使える
-    }
-    // 復習の途中なら、終えた分はそのままに、残りだけを新しい条件で並べ直す
-    if (session) {
-      const done = session.slice(0, idx);
-      const doneKeys = new Set(done.map(keyOf));
-      const rest = buildDueQueue(next).filter((e) => !doneKeys.has(keyOf(e)));
-      setSession([...done, ...rest]);
-      setRevealed(false);
-    }
-  };
-
+  // 間違いの多いコード問題。last は最後に解いたときに間違えたかどうか（提出は新しい順に並んでいる）
   const weakProblems = useMemo(() => {
     const acc = {};
     subs.forEach((s) => {
-      const e = acc[s.problem_id] || { title: s.problem_title, total: 0, wrong: 0 };
+      const e = acc[s.problem_id] || { title: s.problem_title, total: 0, wrong: 0, lastWrong: s.verdict !== 'correct' };
       e.total += 1;
       if (s.verdict !== 'correct') e.wrong += 1;
       acc[s.problem_id] = e;
@@ -118,27 +97,53 @@ export default function Review() {
       .map(([id, v]) => ({ id, ...v, rate: Math.round((v.wrong / v.total) * 100) }));
   }, [subs]);
 
-  const mixableCount =
-    due.filter((i) => i.item_type === 'knowledge' && cards[i.item_id]).length + weakProblems.length;
+  // 切り替えを反映した今日の復習（並べ替える前の一覧）
+  const dueEntries = (f) => {
+    const fromDue = due
+      .filter((i) => (!f.wrongOnly || i.last_result === 'wrong') && (!f.skipHeavy || i.item_type === 'knowledge'))
+      .filter((i) => i.item_type !== 'knowledge' || cards[i.item_id])
+      .map((i) =>
+        i.item_type === 'knowledge'
+          ? { type: 'knowledge', item: i, card: cards[i.item_id] }
+          : { type: 'problem', item: { id: i.item_id, title: i.title || '復習の問題' }, mode: 'review' }
+      );
+    if (!f.addWeak || f.skipHeavy) return fromDue;
+    const have = new Set(fromDue.map(keyOf));
+    const dueProblemIds = new Set(due.filter((i) => i.item_type === 'problem').map((i) => i.item_id));
+    const extra = weakProblems
+      .filter((p) => !dueProblemIds.has(p.id) && !have.has(`p:${p.id}`))
+      .filter((p) => !f.wrongOnly || p.lastWrong)
+      .slice(0, WEAK_EXTRA)
+      .map((p) => ({ type: 'problem', item: p, mode: 'review' }));
+    return [...fromDue, ...extra];
+  };
+  const buildQueue = (f) => (f.shuffle ? shuffled(dueEntries(f)) : dueEntries(f));
 
-  const startMixed = () => {
-    if (mixableCount === 0) return;
-    const queue = [
-      ...due
-        .filter((i) => i.item_type === 'knowledge' && cards[i.item_id])
-        .slice(0, 4)
-        .map((i) => ({ type: 'knowledge', item: i, card: cards[i.item_id] })),
-      ...weakProblems.slice(0, 4).map((p) => ({ type: 'problem', item: p })),
-    ].sort(() => Math.random() - 0.5);
-    setSession(queue);
-    setIdx(0);
-    setRevealed(false);
+  const listed = dueEntries(dueFilter);
+  const extraCount = listed.filter((e) => e.item.rate !== undefined).length;
+  const changed = dueFilter.wrongOnly || dueFilter.skipHeavy || extraCount > 0;
+  const hasAnything = due.length > 0 || weakProblems.length > 0;
+
+  const toggleFilter = (id) => {
+    const next = { ...dueFilter, [id]: !dueFilter[id] };
+    setDueFilter(next);
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(next));
+    } catch {
+      // 保存できなくても切り替え自体は使える
+    }
+    // 復習の途中なら、終えた分はそのままに、残りだけを新しい条件で並べ直す
+    if (session) {
+      const done = session.slice(0, idx);
+      const doneKeys = new Set(done.map(keyOf));
+      const rest = buildQueue(next).filter((e) => !doneKeys.has(keyOf(e)));
+      setSession([...done, ...rest]);
+      setRevealed(false);
+    }
   };
 
-  // 今日の復習を、重いコード問題は飛ばしながら一気に通す
   const startDue = () => {
-    if (dueShown.length === 0) return;
-    const queue = buildDueQueue(dueFilter);
+    const queue = buildQueue(dueFilter);
     if (queue.length === 0) return;
     setSession(queue);
     setIdx(0);
@@ -154,7 +159,7 @@ export default function Review() {
 
   const answerKnowledge = (correct) => {
     const current = session[idx];
-    recordKnowledgeAnswer(current.card, correct, 'mixed');
+    recordKnowledgeAnswer(current.card, correct, 'review');
     setRevealed(false);
     setIdx((i) => i + 1);
   };
@@ -195,9 +200,7 @@ export default function Review() {
       {tab === 'due' &&
         (session ? (
           <div className="mt-5">
-            {due.length > 0 && (
-              <FilterChips value={dueFilter} onToggle={toggleFilter} className="mb-3" />
-            )}
+            {hasAnything && <FilterChips value={dueFilter} onToggle={toggleFilter} className="mb-3" />}
             <SessionRunner
               session={session}
               idx={idx}
@@ -213,11 +216,11 @@ export default function Review() {
           </div>
         ) : (
           <div className="mt-5 space-y-2">
-            {due.length > 0 && (
+            {hasAnything && (
               <FilterChips value={dueFilter} onToggle={toggleFilter} className="pb-1">
-                {filtering && (
+                {changed && (
                   <span className="text-[10px] text-muted-foreground">
-                    {due.length}件中 {dueShown.length}件
+                    今日の復習 {due.length}件 → {listed.length}件
                   </span>
                 )}
               </FilterChips>
@@ -225,18 +228,20 @@ export default function Review() {
             <button
               type="button"
               onClick={startDue}
-              disabled={dueShown.length === 0}
+              disabled={listed.length === 0}
               className="w-full rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              今日の復習をまとめて始める（{dueShown.length}件）
+              今日の復習をまとめて始める（{listed.length}件）
             </button>
-            {due.length === 0 ? (
-              <Empty
-                icon={CalendarClock}
-                text="今日の復習はありません。新しい問題を解くか、集中復習に進みましょう。"
-              />
-            ) : dueShown.length === 0 ? (
-              <Empty icon={CalendarClock} text="この条件に合う今日の復習はありません。絞り込みを外すと、残りの復習が出ます。" />
+            {listed.length === 0 ? (
+              due.length === 0 ? (
+                <Empty
+                  icon={CalendarClock}
+                  text="今日の復習はありません。新しい問題を解くか、「苦手なコード問題も足す」で苦手を解き直しましょう。"
+                />
+              ) : (
+                <Empty icon={CalendarClock} text="この条件に合う今日の復習はありません。切り替えを外すと、残りの復習が出ます。" />
+              )
             ) : (
               <>
                 {!dueFilter.skipHeavy && (
@@ -244,7 +249,13 @@ export default function Review() {
                     コード問題は重いので、途中の「飛ばす」で先へ進めます。
                   </p>
                 )}
-                {dueShown.map((i) => <Row key={i.id} item={i} card={cards[i.item_id]} />)}
+                {listed.map((e) =>
+                  e.item.rate !== undefined ? (
+                    <WeakRow key={keyOf(e)} problem={e.item} />
+                  ) : (
+                    <Row key={keyOf(e)} item={e.item.item_id ? e.item : due.find((i) => i.item_id === e.item.id)} card={e.card} />
+                  )
+                )}
               </>
             )}
           </div>
@@ -273,45 +284,6 @@ export default function Review() {
         </div>
       )}
 
-      {tab === 'mixed' && (
-        <div className="mt-5">
-          {!session ? (
-            <div className="rounded-xl border border-border/60 bg-card/40 p-6 text-center">
-              <Shuffle className="mx-auto h-5 w-5 text-primary/80" />
-              <p className="mt-3 text-xs text-foreground">コードと暗記を交互に</p>
-              <p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
-                復習待ちの知識カードと、誤答の多いコード問題を混ぜて出します。集中が続きます。
-              </p>
-              <button
-                type="button"
-                onClick={startMixed}
-                disabled={mixableCount === 0}
-                className="mt-4 rounded-lg bg-primary px-4 py-2 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
-                セッションを始める
-              </button>
-              {mixableCount === 0 && (
-                <p className="mt-2 text-[10px] text-muted-foreground">
-                  いま混ぜられる項目がありません。1問解くと復習の対象ができます。
-                </p>
-              )}
-            </div>
-          ) : (
-            <SessionRunner
-              session={session}
-              idx={idx}
-              revealed={revealed}
-              onToggle={() => setRevealed((v) => !v)}
-              onAnswer={answerKnowledge}
-              onSkip={() => {
-                setRevealed(false);
-                setIdx((i) => i + 1);
-              }}
-              onReset={resetSession}
-            />
-          )}
-        </div>
-      )}
 
       {tab === 'upcoming' && (
         <div className="mt-5 space-y-2">
@@ -379,5 +351,23 @@ function Empty({ icon: Icon, text }) {
       <Icon className="mx-auto h-5 w-5 text-muted-foreground/50" />
       <p className="mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-muted-foreground">{text}</p>
     </div>
+  );
+}
+
+function WeakRow({ problem }) {
+  return (
+    <Link
+      to={`/solve/${problem.id}?mode=review`}
+      className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-4 py-3 transition-colors hover:border-border hover:bg-accent/30"
+    >
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px]">{problem.title || '苦手な問題'}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          苦手なコード問題 ・ 誤答率 {problem.rate}%（{problem.wrong} / {problem.total}）
+        </p>
+      </div>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+    </Link>
   );
 }
