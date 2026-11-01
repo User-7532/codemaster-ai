@@ -41,16 +41,6 @@ export default function Review() {
   const [revealed, setRevealed] = useState(false);
   const [dueFilter, setDueFilter] = useState(loadFilter);
 
-  const toggleFilter = (id) =>
-    setDueFilter((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      try {
-        localStorage.setItem(FILTER_KEY, JSON.stringify(next));
-      } catch {
-        // 保存できなくても絞り込み自体は使える
-      }
-      return next;
-    });
 
   useEffect(() => {
     if (session) saveSession(session, idx);
@@ -77,10 +67,41 @@ export default function Review() {
   const due = (items || []).filter((i) => i.due_date <= today);
   const upcoming = (items || []).filter((i) => i.due_date > today);
   // 絞り込みを反映した今日の復習
-  const dueShown = due.filter(
-    (i) => (!dueFilter.wrongOnly || i.last_result === 'wrong') && (!dueFilter.skipHeavy || i.item_type === 'knowledge')
-  );
+  const matchFilter = (f) => (i) =>
+    (!f.wrongOnly || i.last_result === 'wrong') && (!f.skipHeavy || i.item_type === 'knowledge');
+  const dueShown = due.filter(matchFilter(dueFilter));
   const filtering = dueFilter.wrongOnly || dueFilter.skipHeavy;
+
+  const buildDueQueue = (f) =>
+    due
+      .filter(matchFilter(f))
+      .filter((i) => i.item_type !== 'knowledge' || cards[i.item_id])
+      .map((i) =>
+        i.item_type === 'knowledge'
+          ? { type: 'knowledge', item: i, card: cards[i.item_id] }
+          : { type: 'problem', item: { id: i.item_id, title: i.title || '復習の問題' }, mode: 'review' }
+      );
+
+  // セッションの項目を見分けるための鍵（知識カードとコード問題で別にする）
+  const keyOf = (entry) => (entry.type === 'knowledge' ? `k:${entry.item?.item_id}` : `p:${entry.item?.id}`);
+
+  const toggleFilter = (id) => {
+    const next = { ...dueFilter, [id]: !dueFilter[id] };
+    setDueFilter(next);
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(next));
+    } catch {
+      // 保存できなくても絞り込み自体は使える
+    }
+    // 復習の途中なら、終えた分はそのままに、残りだけを新しい条件で並べ直す
+    if (session) {
+      const done = session.slice(0, idx);
+      const doneKeys = new Set(done.map(keyOf));
+      const rest = buildDueQueue(next).filter((e) => !doneKeys.has(keyOf(e)));
+      setSession([...done, ...rest]);
+      setRevealed(false);
+    }
+  };
 
   const weakProblems = useMemo(() => {
     const acc = {};
@@ -117,13 +138,7 @@ export default function Review() {
   // 今日の復習を、重いコード問題は飛ばしながら一気に通す
   const startDue = () => {
     if (dueShown.length === 0) return;
-    const queue = dueShown
-      .filter((i) => i.item_type !== 'knowledge' || cards[i.item_id])
-      .map((i) =>
-        i.item_type === 'knowledge'
-          ? { type: 'knowledge', item: i, card: cards[i.item_id] }
-          : { type: 'problem', item: { id: i.item_id, title: i.title || '復習の問題' }, mode: 'review' }
-      );
+    const queue = buildDueQueue(dueFilter);
     if (queue.length === 0) return;
     setSession(queue);
     setIdx(0);
@@ -180,6 +195,9 @@ export default function Review() {
       {tab === 'due' &&
         (session ? (
           <div className="mt-5">
+            {due.length > 0 && (
+              <FilterChips value={dueFilter} onToggle={toggleFilter} className="mb-3" />
+            )}
             <SessionRunner
               session={session}
               idx={idx}
@@ -196,29 +214,13 @@ export default function Review() {
         ) : (
           <div className="mt-5 space-y-2">
             {due.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pb-1">
-                {DUE_FILTERS.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => toggleFilter(f.id)}
-                    aria-pressed={dueFilter[f.id]}
-                    title={f.note}
-                    className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${
-                      dueFilter[f.id]
-                        ? 'border-primary/40 bg-primary/15 text-primary'
-                        : 'border-border/70 text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+              <FilterChips value={dueFilter} onToggle={toggleFilter} className="pb-1">
                 {filtering && (
                   <span className="text-[10px] text-muted-foreground">
                     {due.length}件中 {dueShown.length}件
                   </span>
                 )}
-              </div>
+              </FilterChips>
             )}
             <button
               type="button"
@@ -320,6 +322,30 @@ export default function Review() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function FilterChips({ value, onToggle, className = '', children }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
+      {DUE_FILTERS.map((f) => (
+        <button
+          key={f.id}
+          type="button"
+          onClick={() => onToggle(f.id)}
+          aria-pressed={value[f.id]}
+          title={f.note}
+          className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${
+            value[f.id]
+              ? 'border-primary/40 bg-primary/15 text-primary'
+              : 'border-border/70 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+          }`}
+        >
+          {f.label}
+        </button>
+      ))}
+      {children}
     </div>
   );
 }
