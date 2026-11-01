@@ -9,7 +9,7 @@ import SessionRunner from '@/components/review/SessionRunner';
 
 // 今日の復習の切り替え。次に開いたときも同じ設定で始められるよう保存する
 const FILTER_KEY = 'codemaster-due-filter';
-const FILTER_IDS = ['wrongOnly', 'skipHeavy', 'addWeak', 'shuffle'];
+const FILTER_IDS = ['wrongOnly', 'skipHeavy', 'addWeak'];
 const loadFilter = () => {
   try {
     const v = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
@@ -22,7 +22,6 @@ const DUE_FILTERS = [
   { id: 'wrongOnly', label: '間違えた問題だけ', note: '前回まちがえたものだけを出します' },
   { id: 'skipHeavy', label: '重い問題を飛ばす', note: 'コード問題を外して、知識カードだけにします' },
   { id: 'addWeak', label: '苦手なコード問題も足す', note: '今日が復習日でなくても、間違いの多いコード問題を最大4問足します' },
-  { id: 'shuffle', label: '順番をシャッフル', note: '期日順ではなく、ばらばらの順番で出します' },
 ];
 const WEAK_EXTRA = 4;
 
@@ -117,7 +116,8 @@ export default function Review() {
       .map((p) => ({ type: 'problem', item: p, mode: 'review' }));
     return [...fromDue, ...extra];
   };
-  const buildQueue = (f) => (f.shuffle ? shuffled(dueEntries(f)) : dueEntries(f));
+  // 出す順番はいつもシャッフルする
+  const buildQueue = (f) => shuffled(dueEntries(f));
 
   const listed = dueEntries(dueFilter);
   const extraCount = listed.filter((e) => e.item.rate !== undefined).length;
