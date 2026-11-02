@@ -218,6 +218,12 @@ export default function AssistantPanel({
             </button>
           ))}
         </div>
+        {onImport && draft.trim().length > 800 && (
+          <p className="mb-1.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+            <span>ほかのAIとの会話なら、左の取り込みボタンで問題や記憶に反映できます。</span>
+            <span className="shrink-0 tabular-nums">{draft.trim().length.toLocaleString()} / {IMPORT_MAX.toLocaleString()}字</span>
+          </p>
+        )}
         <div className="flex items-end gap-1.5">
           <textarea
             ref={inputRef}

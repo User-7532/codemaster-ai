@@ -197,7 +197,19 @@ export default function Knowledge() {
   };
 
   // 貼り付けた対話から作った問題を、そのまま続けて解けるようにする
-  const usePastedCards = (cards) => {
+  const usePastedCards = (cards, result) => {
+    if (result) {
+      const extra = [
+        result.problems.length ? `コーディング問題${result.problems.length}問` : '',
+        `今日の復習に${result.scheduled}件`,
+        result.memoryUpdated ? 'AIの記憶を更新' : '',
+      ].filter(Boolean);
+      toast({
+        title: `知識の問題を${cards.length}問作りました`,
+        description: `${extra.join('・')}${result.errors.length ? `（うまくいかなかったもの: ${result.errors.join('、')}）` : ''}`,
+      });
+    }
+    if (cards.length === 0) return;
     setFocusCard(null);
     cardsRef.current = [...cards, ...cardsRef.current];
     setDeck(cards);
