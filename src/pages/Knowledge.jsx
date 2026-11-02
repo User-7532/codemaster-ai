@@ -13,6 +13,7 @@ import {
 import ClozeCard from '@/components/knowledge/ClozeCard';
 import WrittenCard from '@/components/knowledge/WrittenCard';
 import DomainPicker from '@/components/knowledge/DomainPicker';
+import PasteImport from '@/components/knowledge/PasteImport';
 
 const shuffle = (arr) => {
   const a = [...arr];
@@ -195,6 +196,17 @@ export default function Knowledge() {
     advance();
   };
 
+  // 貼り付けた対話から作った問題を、そのまま続けて解けるようにする
+  const usePastedCards = (cards) => {
+    setFocusCard(null);
+    cardsRef.current = [...cards, ...cardsRef.current];
+    setDeck(cards);
+    setIdx(0);
+    setRevealed(false);
+    setTally({ correct: 0, wrong: 0 });
+    setNote('');
+  };
+
   const chooseGenre = (g) => {
     if (g === genre) return;
     setGenre(g);
@@ -283,6 +295,8 @@ export default function Knowledge() {
           正解 {tally.correct} ・ わからなかった {tally.wrong}
         </span>
       </div>
+
+      <PasteImport onCards={usePastedCards} />
 
       {!ready ? (
         <div className="flex justify-center py-20">

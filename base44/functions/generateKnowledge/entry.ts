@@ -113,10 +113,11 @@ function difficultyRule(count, total, accuracy) {
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
-    const source = body.source === 'chat' ? 'chat' : 'topic';
+    const source = body.source === 'chat' ? 'chat' : body.source === 'external' ? 'external' : 'topic';
     const genre = String(body.genre || '').slice(0, 10);
     const leaf = String(body.leaf || '').slice(0, 30);
-    const count = Math.max(4, Math.min(8, Number(body.count) || 6));
+    // 貼り付けた対話は話題が多いので、多めに作れるようにする
+    const count = Math.max(4, Math.min(source === 'external' ? 12 : 8, Number(body.count) || 6));
     const leaves = Array.isArray(body.leaves)
       ? body.leaves.map((x) => String(x).slice(0, 30)).filter(Boolean).slice(0, 12)
       : [];
@@ -146,7 +147,7 @@ export default async function (req) {
     ]);
 
     const existing = (existingPage.items || []).filter((c) =>
-      source === 'chat' ? c.source === 'chat' : c.domain && c.domain.startsWith(prefix)
+      source === 'topic' ? c.domain && c.domain.startsWith(prefix) : c.source === 'chat'
     );
     const existingTexts = existing
       .slice(0, 40)
@@ -184,6 +185,23 @@ ${RULES}
 
 【会話】
 ${transcript.slice(0, 12000)}`;
+    } else if (source === 'external') {
+      const pasted = String(body.text || '').trim().slice(0, 14000);
+      if (pasted.length < 40) {
+        return Response.json({ cards: [], reason: '貼り付けた文章が短すぎます。対話をそのまま貼り付けてください。' });
+      }
+
+      prompt = `以下は、利用者がほかのAIと交わした対話の記録です。この対話を通じて利用者が学んだ知識を、知識確認問題にしてください。
+
+${RULES}
+- 対話に含まれる学びになる内容を漏らさず拾う。まず用語、仕組み、理由、比較、手順、判断基準、注意点といった話題を洗い出し、そのほとんどを問題にする。1問に複数の話題を詰め込まず、話題が多いときは問題数を増やして対応する。
+- 対話で実際に説明・言及された内容だけを問題にする。対話にない知識で補ったり、水増ししたりしない。ただし、対話の説明を理解するのに必要な前提（用語の意味など）は、対話の中に手がかりがある場合に限り1〜2問だけ補ってよい。
+- ITの領域から外れた内容でも、学ぶ価値のある知識なら問題にしてよい。挨拶、雑談、進行の確認だけの部分は問題にしない。
+- leaf には、その問題が属する領域や話題を短い名詞で入れる（例: Python、TCP/IP、KPI、設計判断）。
+- 話題が広がるので、${count}問つくる。同じ話題の重複は避け、幅広く分ける。${avoid}
+
+【対話】
+${pasted}`;
     } else {
       const target =
         genre === 'business'
@@ -229,7 +247,7 @@ ${genreRule(genre)}${avoid}`;
       seen.add(key);
 
       let cardDomain = 'business';
-      if (source === 'chat') {
+      if (source !== 'topic') {
         cardDomain = `tech:${String(c?.leaf || '会話').slice(0, 20)}`;
       } else if (genre !== 'business') {
         const picked = whole ? String(c?.leaf || '').slice(0, 30) : leaf;
@@ -246,7 +264,7 @@ ${genreRule(genre)}${avoid}`;
         model_answer: kind === 'written' ? String(c?.model_answer || '').slice(0, 800) : '',
         explanation: String(c?.explanation || '').slice(0, 600),
         difficulty: ['basic', 'intermediate', 'advanced'].includes(c?.difficulty) ? c.difficulty : 'basic',
-        source: source === 'chat' ? 'chat' : 'ai',
+        source: source === 'topic' ? 'ai' : 'chat',
       });
     });
 
