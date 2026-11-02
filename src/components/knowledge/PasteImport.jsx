@@ -18,8 +18,9 @@ export default function PasteImport({ onCards }) {
     try {
       const res = await base44.functions.invoke('generateKnowledge', {
         source: 'external',
-        text: text.trim().slice(0, 20000),
-        count: 10,
+        text: text.trim().slice(0, 60000),
+        // 長い記録ほど話題が多いので、問題数も少しずつ増やす
+        count: Math.min(24, Math.max(10, Math.ceil(text.trim().length / 2500))),
       });
       if (res.data?.error) throw new Error(res.data.error);
       const cards = res.data?.cards || [];
@@ -61,8 +62,8 @@ export default function PasteImport({ onCards }) {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={5}
-            maxLength={20000}
+            rows={8}
+            maxLength={60000}
             placeholder="（例）AIとの対話をコピーして貼り付け"
             className="mt-2 w-full resize-y rounded-lg border border-border/70 bg-background/70 px-2.5 py-2 text-[11.5px] leading-relaxed outline-none focus:border-primary/50"
           />
@@ -88,8 +89,9 @@ export default function PasteImport({ onCards }) {
               閉じる
             </button>
           </div>
-          <p className="mt-1.5 text-[10px] text-muted-foreground/70">
-            貼り付けた文章は、問題を作るときだけ使います。作った問題は「会話から」の分野にも残ります。
+          <p className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground/70">
+            <span>長い記録もそのまま貼り付けられます。</span>
+            <span className="tabular-nums">{text.trim().length.toLocaleString()} / 60,000字</span>
           </p>
         </div>
       )}

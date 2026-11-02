@@ -117,7 +117,7 @@ export default async function (req) {
     const genre = String(body.genre || '').slice(0, 10);
     const leaf = String(body.leaf || '').slice(0, 30);
     // 貼り付けた対話は話題が多いので、多めに作れるようにする
-    const count = Math.max(4, Math.min(source === 'external' ? 12 : 8, Number(body.count) || 6));
+    const count = Math.max(4, Math.min(source === 'external' ? 24 : 8, Number(body.count) || 6));
     const leaves = Array.isArray(body.leaves)
       ? body.leaves.map((x) => String(x).slice(0, 30)).filter(Boolean).slice(0, 12)
       : [];
@@ -186,7 +186,7 @@ ${RULES}
 【会話】
 ${transcript.slice(0, 12000)}`;
     } else if (source === 'external') {
-      const pasted = String(body.text || '').trim().slice(0, 14000);
+      const pasted = String(body.text || '').trim().slice(0, 60000);
       if (pasted.length < 40) {
         return Response.json({ cards: [], reason: '貼り付けた文章が短すぎます。対話をそのまま貼り付けてください。' });
       }
