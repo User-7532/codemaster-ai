@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { GripHorizontal, Loader2, Quote, Search, Send, X } from 'lucide-react';
+import { ClipboardPaste, GripHorizontal, Loader2, Quote, Search, Send, X } from 'lucide-react';
+import { IMPORT_MAX, IMPORT_MIN } from '@/lib/external-import';
 import MessageSearch from '@/components/assistant/MessageSearch';
 
 const CHIPS_NORMAL = [
@@ -14,6 +15,8 @@ export default function AssistantPanel({
   messages,
   busy,
   onSend,
+  onImport,
+  importing = false,
   onClose,
   onLoadFrom,
   quote = '',
@@ -76,6 +79,14 @@ export default function AssistantPanel({
   const submit = () => {
     if (!draft.trim() || busy) return;
     onSend(draft);
+    setDraft('');
+  };
+
+  // 入力欄に貼った長い文章を、ほかのAIとの会話として取り込む
+  const canImport = !!onImport && !busy && draft.trim().length >= IMPORT_MIN;
+  const runImport = () => {
+    if (!canImport) return;
+    onImport(draft);
     setDraft('');
   };
 
@@ -172,7 +183,8 @@ export default function AssistantPanel({
         )}
         {busy && (
           <div className="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> 考えています…
+            <Loader2 className="h-3 w-3 animate-spin" />
+            {importing ? '会話を取り込んでいます（1〜2分かかることがあります）…' : '考えています…'}
           </div>
         )}
         <div ref={bottomRef} />
@@ -218,10 +230,21 @@ export default function AssistantPanel({
               }
             }}
             rows={1}
-            maxLength={1000}
+            maxLength={IMPORT_MAX}
             placeholder={quote ? 'この部分について、どう聞きますか？' : '何でも聞いてください'}
             className="max-h-24 min-h-9 flex-1 resize-none rounded-lg border border-border/70 bg-background/70 px-2.5 py-2 text-[12px] leading-relaxed outline-none focus:border-primary/50"
           />
+          {onImport && (
+            <button
+              type="button"
+              onClick={runImport}
+              disabled={!canImport}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
+              title="入力欄に貼った、ほかのAIとの会話を取り込む（知識問題・コーディング問題・復習・AIの記憶に反映）"
+            >
+              <ClipboardPaste className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={submit}
