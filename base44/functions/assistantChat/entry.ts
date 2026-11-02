@@ -22,7 +22,7 @@ export default async function (req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    // 長い文章をそのまま貼って相談できるようにする（記録の読み込みには先頭の一部だけを使う）
+    // 長い文章をそのまま貼って相談できるようにする（過去の発言は短く切って使う）
     const message = String(body.message || '').trim().slice(0, 60000);
     const page = String(body.page || '').slice(0, 60);
     const path = String(body.path || '').slice(0, 120);
