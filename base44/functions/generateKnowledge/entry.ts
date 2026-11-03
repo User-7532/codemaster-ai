@@ -23,12 +23,13 @@ const CARD_SCHEMA = {
           text: { type: 'string' },
           answer: { type: 'string' },
           model_answer: { type: 'string' },
+          expected_points: { type: 'array', items: { type: 'string' } },
           // 解答者が自分で答えるべき語句。問題文に出ていないかの確認に使う（保存はしない）
           target_terms: { type: 'array', items: { type: 'string' } },
           explanation: { type: 'string' },
           difficulty: { type: 'string', enum: ['basic', 'intermediate', 'advanced'] },
         },
-        required: ['leaf', 'topic', 'kind', 'text', 'answer', 'target_terms', 'explanation', 'difficulty'],
+        required: ['leaf', 'topic', 'kind', 'text', 'answer', 'expected_points', 'target_terms', 'explanation', 'difficulty'],
       },
     },
   },
@@ -38,7 +39,9 @@ const CARD_SCHEMA = {
 const RULES = `共通の書式:
 - kind は "cloze"（空所補充）か "written"（記述）。1つの語句で答えられる知識は cloze、理由や仕組みの説明が必要な知識は written にする。
 - cloze の text は1〜2文で、空所を ___（半角アンダースコア3つ）で表す。空所は1か所だけ。answer には空所に入る語句を短く入れる。
-- written の text は答えを含まない問い。model_answer に2〜4文の模範解答を書き、answer には要点を10〜20字で入れる。
+- written の text は答えを含まない問い。求めている充実度が解答者に分かるように、問いの中に「何を」「いくつ」「どのくらいの長さで」答えるかを必ず書く（例:「仕組みを2つの理由とともに、それぞれ1文で説明してください」「3つの観点を挙げ、1文ずつ説明してください」）。1語や短い句で足りる問いにしない。
+- written の model_answer に2〜4文の模範解答を書き、answer には要点を10〜20字で入れる。
+- written の expected_points には、問題文で求めた要素を短い箇条書き（各20字程度）で並べる。問題文で示した数と数を合わせる。cloze では空配列にする。
 - explanation は1〜2文で、なぜそうなるかを平易に説明する。
 - 日本語で書く。技術用語は正確な標準用語を使い、比喩や曖昧な言い換えはしない。
 - 1問は短く。冗長な前置きや同じ内容の繰り返しは入れない。
@@ -262,6 +265,10 @@ ${genreRule(genre)}${avoid}`;
         text,
         answer: String(c?.answer || '').slice(0, 200),
         model_answer: kind === 'written' ? String(c?.model_answer || '').slice(0, 800) : '',
+        expected_points:
+          kind === 'written' && Array.isArray(c?.expected_points)
+            ? c.expected_points.map((p) => String(p || '').slice(0, 40)).filter(Boolean).slice(0, 6)
+            : [],
         explanation: String(c?.explanation || '').slice(0, 600),
         difficulty: ['basic', 'intermediate', 'advanced'].includes(c?.difficulty) ? c.difficulty : 'basic',
         source: source === 'topic' ? 'ai' : 'chat',

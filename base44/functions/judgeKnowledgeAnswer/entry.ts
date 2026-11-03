@@ -28,13 +28,20 @@ export default async function (req) {
     );
     if (!card) return Response.json({ error: 'Card not found' }, { status: 404 });
 
+    const points = Array.isArray(card.expected_points) ? card.expected_points.filter(Boolean) : [];
+    const pointBlock = points.length
+      ? `【問題文で求めている要素（採点の観点）】\n- ${points.join('\n- ')}\n`
+      : '';
+
     const prompt = `あなたはIT資格と技術面接の採点者です。次の記述問題に対する学習者の解答を判定してください。
 
 【問題】${card.text}
 【想定した解答】${card.model_answer || card.answer || '(なし)'}
-【解説】${card.explanation || '(なし)'}
+${pointBlock}【解説】${card.explanation || '(なし)'}
 
 判定の基準:
+- 採点の観点は、問題文で求められている要素だけにする。問題文で求めていない要素まで書いていないことを理由に不正解にしない。
+- 問題文で「2つ」「3つの観点」のように数が示されているときは、その数だけ挙げられているかを確認する。数が足りない場合は不正解。
 - 想定した解答の要点を、自分の言葉で説明できていれば正解。
 - 要点が抜けている、逆の意味になっている、あいまいで正誤がはっきりしない場合は不正解。
 - 迷う場合は不正解にする。ただし用語の表記の違いだけなら正解にする。

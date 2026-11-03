@@ -62,6 +62,19 @@ export default function WrittenCard({ card, onResult, onSkip }) {
           </p>
           <p className="text-[11.5px] leading-relaxed text-foreground/80">{verdict.feedback}</p>
           <div className="rounded-lg bg-secondary/40 px-3 py-2.5">
+            {card.expected_points?.length > 0 && (
+              <div className="mb-2.5">
+                <p className="text-[10px] text-muted-foreground">採点の観点</p>
+                <ul className="mt-1 space-y-0.5">
+                  {card.expected_points.map((p, i) => (
+                    <li key={i} className="flex gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                      <span className="shrink-0">・</span>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <p className="text-[10px] text-muted-foreground">模範解答</p>
             <p className="mt-1 whitespace-pre-wrap text-[11.5px] leading-relaxed text-muted-foreground">
               {card.model_answer || card.answer}
@@ -91,7 +104,7 @@ export default function WrittenCard({ card, onResult, onSkip }) {
             }}
             rows={4}
             maxLength={2000}
-            placeholder="分かる範囲で書いてください。長さは自由です。"
+            placeholder="問題文で求められた要素を、示された数だけ書いてください。"
             className="mt-4 w-full resize-y rounded-lg border border-border/70 bg-background/70 px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-primary/50"
           />
           {error && <p className="mt-2 text-[11px] text-rose-700">{error}</p>}
