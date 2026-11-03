@@ -200,7 +200,15 @@ export default function Dashboard() {
                     >
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs text-foreground">{r.title || '復習アイテム'}</span>
+                        {/* 以前の記録では、知識カードの題名に答えや話題名が入っている。
+                            答えを伏せた問題文（＿＿＿入り）のときだけ出し、それ以外は伏せる */}
+                        <span className="block truncate text-xs text-foreground">
+                          {r.item_type === 'problem'
+                            ? r.title || '復習の問題'
+                            : String(r.title || '').includes('＿')
+                              ? r.title
+                              : '知識カードの復習'}
+                        </span>
                         <span className="mt-0.5 block text-[11px] text-muted-foreground">
                           {r.item_type === 'problem' ? 'コード問題' : '知識カード'}
                         </span>
