@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { Check, Loader2, SkipForward, X } from 'lucide-react';
+import { Check, Loader2, Mic, MicOff, SkipForward, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { domainLabel } from '@/lib/knowledge-domains';
 import { revealsAnswer } from '@/lib/answer-guard';
+import useSpeechInput from '@/hooks/use-speech-input';
 
 export default function WrittenCard({ card, onResult, onSkip }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [verdict, setVerdict] = useState(null);
   const [error, setError] = useState('');
+  const speech = useSpeechInput({ onText: (t) => setDraft((d) => d + t) });
 
   const judge = async () => {
     if (!draft.trim() || busy) return;
+    speech.stop();
     setBusy(true);
     setError('');
     try {
@@ -93,6 +96,26 @@ export default function WrittenCard({ card, onResult, onSkip }) {
         </div>
       ) : (
         <>
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={speech.toggle}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
+                speech.listening
+                  ? 'border-primary/50 bg-primary/10 text-primary'
+                  : 'border-border/70 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {speech.listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              {speech.listening ? '音声を止める' : '音声で入力'}
+            </button>
+            {speech.listening && (
+              <span className="flex items-center gap-1 text-[10px] text-primary">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /> 聞き取り中
+              </span>
+            )}
+          </div>
+          {speech.error && <p className="mt-1.5 text-[10px] text-rose-700">{speech.error}</p>}
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -105,8 +128,11 @@ export default function WrittenCard({ card, onResult, onSkip }) {
             rows={4}
             maxLength={2000}
             placeholder="問題文で求められた要素を、示された数だけ書いてください。"
-            className="mt-4 w-full resize-y rounded-lg border border-border/70 bg-background/70 px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-primary/50"
+            className="mt-2 w-full resize-y rounded-lg border border-border/70 bg-background/70 px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-primary/50"
           />
+          {speech.interim && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground/70">…{speech.interim}</p>
+          )}
           {error && <p className="mt-2 text-[11px] text-rose-700">{error}</p>}
           <button
             type="button"
