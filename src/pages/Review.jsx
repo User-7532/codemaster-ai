@@ -6,6 +6,7 @@ import { todayISO } from '@/lib/srs';
 import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import SessionRunner from '@/components/review/SessionRunner';
+import { questionPreview } from '@/lib/answer-guard';
 
 // 今日の復習の切り替え。次に開いたときも同じ設定で始められるよう保存する
 const FILTER_KEY = 'codemaster-due-filter';
@@ -334,7 +335,12 @@ function Row({ item, card, showDate }) {
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.item_type === 'problem' ? 'bg-primary' : 'bg-teal-400'}`}
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px]">{item.title || card?.topic || '復習アイテム'}</p>
+        {/* 知識カードは、答えや話題名ではなく、答えを伏せた問題文を出す */}
+        <p className="truncate text-[13px]">
+          {item.item_type === 'problem'
+            ? item.title || '復習の問題'
+            : questionPreview(card) || '知識カード'}
+        </p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           {item.item_type === 'problem' ? 'コード問題' : '知識カード'}
           {showDate ? ` ・ ${item.due_date}` : item.last_result === 'wrong' ? ' ・ 前回ミス' : ''}

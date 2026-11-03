@@ -1,3 +1,4 @@
+import { questionPreview } from '@/lib/answer-guard';
 import { base44 } from '@/api/base44Client';
 import { recordReview } from '@/lib/srs';
 
@@ -14,7 +15,8 @@ export function recordKnowledgeAnswer(card, correct, mode) {
   recordReview({
     item_type: 'knowledge',
     item_id: card.id,
-    title: card.topic || card.answer,
+    // 一覧に出しても答えが見えないよう、答えを伏せた問題文を題名にする
+    title: questionPreview(card, 40) || '知識カード',
     topic: card.domain,
     correct,
   }).catch(() => {});

@@ -1,4 +1,5 @@
 import { domainLabel } from '@/lib/knowledge-domains';
+import { revealsAnswer } from '@/lib/answer-guard';
 
 export default function ClozeCard({ card, revealed, onToggle }) {
   const parts = (card?.text || '').split('___');
@@ -6,8 +7,12 @@ export default function ClozeCard({ card, revealed, onToggle }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card/50 p-5">
       <div className="flex items-center gap-2">
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{domainLabel(card.domain)}</span>
-        {card.topic && <span className="text-[10px] text-muted-foreground/70">{card.topic}</span>}
+        {/* 分野名が答えそのものになっているときは、答えを見るまで伏せる */}
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+          {!revealed && revealsAnswer(domainLabel(card.domain), card) ? '知識' : domainLabel(card.domain)}
+        </span>
+        {/* 話題名は答えの言い換えになりやすいので、答えを見てから出す */}
+        {revealed && card.topic && <span className="text-[10px] text-muted-foreground/70">{card.topic}</span>}
       </div>
 
       <p className="mt-4 text-[13.5px] leading-relaxed text-foreground/90">

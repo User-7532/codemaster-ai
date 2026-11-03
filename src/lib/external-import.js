@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { todayISO } from '@/lib/srs';
+import { questionPreview } from '@/lib/answer-guard';
 
 export const IMPORT_MAX = 60000;
 export const IMPORT_MIN = 40;
@@ -57,7 +58,7 @@ export async function importExternal(raw) {
   let scheduled = 0;
   try {
     scheduled = await scheduleToday([
-      ...cards.map((c) => ({ item_type: 'knowledge', item_id: c.id, title: c.topic || c.answer, topic: c.domain })),
+      ...cards.map((c) => ({ item_type: 'knowledge', item_id: c.id, title: questionPreview(c, 40) || '知識カード', topic: c.domain })),
       ...problems.map((p) => ({ item_type: 'problem', item_id: p.id, title: p.title, topic: (p.topics || [])[0] || '' })),
     ]);
   } catch {
