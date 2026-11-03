@@ -1,4 +1,16 @@
 import { base44 } from '@/api/base44Client';
+import { signedUrls } from '@/lib/attachments';
+
+// 添付した画像（会話のスクリーンショットなど）を文字に起こし、貼り付けた文章に足す
+async function withImageText(text, uris) {
+  if (!uris || !uris.length) return text;
+  const urls = await signedUrls(uris);
+  const res = await base44.functions.invoke('readImages', { urls });
+  if (res.data?.error) throw new Error(res.data.error);
+  const read = String(res.data?.text || '').trim();
+  if (!read) return text;
+  return [text, `[添付した画像から読み取った内容]\n${read}`].filter(Boolean).join('\n\n');
+}
 import { todayISO } from '@/lib/srs';
 import { questionPreview } from '@/lib/answer-guard';
 
@@ -19,8 +31,8 @@ async function scheduleToday(entries) {
 }
 
 // ほかのAIとの会話を取り込み、知識問題・コーディング問題・アシスタントの記憶・今日の復習に反映する
-export async function importExternal(raw) {
-  const text = String(raw || '').trim().slice(0, IMPORT_MAX);
+export async function importExternal(raw, imageUris = []) {
+  const text = (await withImageText(String(raw || '').trim(), imageUris)).slice(0, IMPORT_MAX);
   if (text.length < IMPORT_MIN) throw new Error('貼り付けた文章が短すぎます。対話をそのまま貼り付けてください。');
 
   // 長い記録ほど話題が多いので、問題数も少しずつ増やす
