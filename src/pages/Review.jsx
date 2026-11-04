@@ -7,6 +7,7 @@ import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import SessionRunner from '@/components/review/SessionRunner';
 import { questionPreview } from '@/lib/answer-guard';
+import { refineOldCardsInBackground } from '@/lib/refine-written';
 
 // 今日の復習の切り替え。次に開いたときも同じ設定で始められるよう保存する
 const FILTER_KEY = 'codemaster-due-filter';
@@ -59,6 +60,11 @@ export default function Review() {
   useEffect(() => {
     if (session) saveSession(session, idx);
   }, [session, idx]);
+
+  // これまでの記述問題の聞き方を、裏で少しずつ見直す
+  useEffect(() => {
+    refineOldCardsInBackground();
+  }, []);
 
   useEffect(() => {
     base44.entities.ReviewItem.list({ sort: 'due_date', limit: 200 }).then((page) => setItems(page.items));

@@ -14,6 +14,7 @@ import ClozeCard from '@/components/knowledge/ClozeCard';
 import WrittenCard from '@/components/knowledge/WrittenCard';
 import DomainPicker from '@/components/knowledge/DomainPicker';
 import PasteImport from '@/components/knowledge/PasteImport';
+import { refineNewCards, refineOldCardsInBackground } from '@/lib/refine-written';
 
 const shuffle = (arr) => {
   const a = [...arr];
@@ -52,6 +53,11 @@ export default function Knowledge() {
   const shownRef = useRef(new Set());
   const busyRef = useRef(false);
   const { toast } = useToast();
+
+  // これまでの記述問題の聞き方を、裏で少しずつ見直す
+  useEffect(() => {
+    refineOldCardsInBackground();
+  }, []);
 
   useEffect(() => {
     const loadCards = async () => {
@@ -122,7 +128,8 @@ export default function Knowledge() {
       const res = await base44.functions.invoke('generateKnowledge', payload);
       if (res.data?.error) throw new Error(res.data.error);
 
-      const created = (res.data?.cards || []).filter((c) => !onlyLight || c.kind !== 'written');
+      // 記述問題は、出す前に聞き方を見直す（答えの範囲が定まるように）
+      const created = (await refineNewCards(res.data?.cards || [])).filter((c) => !onlyLight || c.kind !== 'written');
       if (created.length === 0) {
         setNote(res.data?.reason || '問題を用意できませんでした。少し待ってからもう一度お試しください。');
         return;

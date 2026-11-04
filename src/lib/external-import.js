@@ -13,6 +13,7 @@ async function withImageText(text, uris) {
 }
 import { todayISO } from '@/lib/srs';
 import { questionPreview } from '@/lib/answer-guard';
+import { refineNewCards } from '@/lib/refine-written';
 
 export const IMPORT_MAX = 60000;
 export const IMPORT_MIN = 40;
@@ -44,7 +45,9 @@ export async function importExternal(raw, imageUris = []) {
   ]);
 
   const errors = [];
-  const cards = cardsRes.status === 'fulfilled' && !cardsRes.value.data?.error ? cardsRes.value.data?.cards || [] : [];
+  const rawCards = cardsRes.status === 'fulfilled' && !cardsRes.value.data?.error ? cardsRes.value.data?.cards || [] : [];
+  // 記述問題は聞き方を見直してから使う
+  const cards = await refineNewCards(rawCards);
   if (cards.length === 0) errors.push('知識の問題');
   const digest = digestRes.status === 'fulfilled' && !digestRes.value.data?.error ? digestRes.value.data : null;
   if (!digest) errors.push('記憶とコーディング問題');
