@@ -17,9 +17,10 @@ const SCHEMA = {
           text: { type: 'string' },
           model_answer: { type: 'string' },
           answer: { type: 'string' },
+          expected_points: { type: 'array', items: { type: 'string' } },
           target_terms: { type: 'array', items: { type: 'string' } },
         },
-        required: ['id', 'ambiguous', 'text', 'model_answer', 'answer', 'target_terms'],
+        required: ['id', 'ambiguous', 'text', 'model_answer', 'answer', 'expected_points', 'target_terms'],
       },
     },
   },
@@ -66,7 +67,7 @@ export default async function (req) {
     const list = batch
       .map(
         (c) =>
-          `id: ${c.id}\n問題: ${c.text}\n模範解答: ${c.model_answer || ''}\n要点: ${c.answer || ''}\n解説: ${c.explanation || ''}`
+          `id: ${c.id}\n問題: ${c.text}\n模範解答: ${c.model_answer || ''}\n要点: ${c.answer || ''}\n採点の観点: ${(c.expected_points || []).join(' / ') || '（なし）'}\n解説: ${c.explanation || ''}`
       )
       .join('\n\n');
 
@@ -81,7 +82,9 @@ export default async function (req) {
 - ambiguous: あいまいなら true、答えの範囲が定まっているなら false。
 - あいまいな問いは、模範解答の内容が正解になるように、問題文に観点・数・条件を足して書き直す。例: 「計画フェーズで目標性能を満たすための施策を、ソフトウェア面とハードウェア面から1つずつ挙げよ。」
 - 書き直すときも、模範解答に出てくる用語そのもの（答えさせたい語句）は問題文に書かない。答えを示唆しすぎない。
-- model_answer は書き直した問いにぴったり答える2〜4文、answer はその要点を10〜20字にする。あいまいでない問いは、text・model_answer・answer を元のまま返す。
+- model_answer は書き直した問いにぴったり答える2〜4文、answer はその要点を10〜20字にする。
+- expected_points には、書き直した問いが求めている要素（採点の観点）を、問いの観点・数に合わせて1〜4個書く。模範解答の言い回しではなく、問いの条件として書く（例: 「ソフトウェア面の施策を1つ」「ハードウェア面の施策を1つ」）。
+- あいまいでない問いは、text・model_answer・answer・expected_points を元のまま返す（採点の観点がない問いは、問いの条件から書き起こす）。
 - target_terms には、解答者が自分で答えるべき語句を入れる。
 - 日本語で、技術用語は正確な標準用語を使う。問いの主題や難しさは変えない。
 
@@ -104,6 +107,9 @@ ${list}`,
         if (String(fix.answer || '').trim()) patch.answer = String(fix.answer).trim().slice(0, 200);
         changed += 1;
       }
+      // 採点の観点は、問いの条件に合わせたものにそろえる（書き直さなかった問いも、観点がなければ足す）
+      const points = (Array.isArray(fix?.expected_points) ? fix.expected_points : []).map((x) => String(x).trim()).filter(Boolean).slice(0, 4);
+      if (points.length && (patch.text || !(card.expected_points || []).length)) patch.expected_points = points;
       await base44.entities.KnowledgeCard.update(card.id, patch);
       updated.push({ ...card, ...patch });
     }
