@@ -1,10 +1,12 @@
-import { forwardRef, useLayoutEffect, useMemo, useRef } from 'react';
+import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { tokenClasses } from '@/lib/highlight';
 import { autoIndent } from '@/lib/indent';
 import { cn } from '@/lib/utils';
 
 // 写経の入力欄。
 // mode="ghost": お手本を薄く下に敷き、その上をなぞって書く（目を離さずに書ける）
-// それ以外: ふつうの入力欄。書いた字のうち、お手本と違うところだけ色を付ける（mode="hidden" では付けない）
+// それ以外: ふつうの入力欄。書いた字のうち、お手本と違うところに赤い下地を付ける（mode="hidden" では付けない）
+// 書いた字は下の層に色付きで描き、入力欄の字は透明にしてカーソルだけを見せる
 //
 // 行ごとに比べるので、1文字飛ばしてもその行の中だけが赤くなり、次の行からはまた正しく比べられる。
 
@@ -48,6 +50,18 @@ const TraceEditor = forwardRef(function TraceEditor(
   const showMarks = mode !== 'hidden';
   const areaRef = useRef(null);
   const pendingCaret = useRef(null);
+  // 日本語などを変換している間は、確定前の字を入力欄そのものに見せる（色付きの層にはまだ入っていないため）
+  const [composing, setComposing] = useState(false);
+  const colors = useMemo(() => tokenClasses(value, language), [value, language]);
+  const lineStarts = useMemo(() => {
+    const starts = [];
+    let at = 0;
+    value.split('\n').forEach((l) => {
+      starts.push(at);
+      at += l.length + 1;
+    });
+    return starts;
+  }, [value]);
 
   // 字下げを足したときのカーソル位置は、画面に反映した直後に合わせる（遅れて合わせると、速く打った字が別の場所に入る）
   useLayoutEffect(() => {
@@ -133,11 +147,14 @@ const TraceEditor = forwardRef(function TraceEditor(
                 <div key={i} className="min-h-[1.5rem]">
                   {Array.from(line).map((ch, j) => {
                     const wrong = ch !== target[j];
-                    // 字は透明（場所取りだけ）。違うところに赤い下地を敷く
+                    // 書いた字は種類ごとに色を付けて見せ、お手本と違うところには赤い下地を敷く
                     return (
                       <span
                         key={j}
-                        className={cn('text-transparent', showMarks && wrong && 'rounded-[2px] bg-[#c2603f]/55')}
+                        className={cn(
+                          composing ? 'text-transparent' : colors[lineStarts[i] + j] || 'text-[#ece3d6]',
+                          showMarks && wrong && 'rounded-[2px] bg-[#c2603f]/55'
+                        )}
                       >
                         {ch}
                       </span>
@@ -153,7 +170,11 @@ const TraceEditor = forwardRef(function TraceEditor(
             ref={setRefs}
             value={value}
             onChange={handleChange}
-            onCompositionEnd={(e) => onChange(e.currentTarget.value)}
+            onCompositionStart={() => setComposing(true)}
+            onCompositionEnd={(e) => {
+              setComposing(false);
+              onChange(e.currentTarget.value);
+            }}
             onKeyDown={handleKeyDown}
             rows={lineCount + 1}
             wrap="off"
@@ -163,7 +184,10 @@ const TraceEditor = forwardRef(function TraceEditor(
             autoComplete="off"
             data-no-ask
             aria-label="写経の入力欄"
-            className="relative block w-full resize-none overflow-hidden whitespace-pre bg-transparent px-3 py-3 font-mono text-[13px] leading-6 text-[#ece3d6] caret-[#f1b6a2] outline-none"
+            className={cn(
+              'relative block w-full resize-none overflow-hidden whitespace-pre bg-transparent px-3 py-3 font-mono text-[13px] leading-6 caret-[#f1b6a2] outline-none',
+              composing ? 'text-[#ece3d6]' : 'text-transparent'
+            )}
           />
         </div>
       </div>

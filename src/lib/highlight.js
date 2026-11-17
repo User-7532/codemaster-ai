@@ -66,3 +66,18 @@ export function highlight(code, language) {
   out += escapeHtml(source.slice(last));
   return out;
 }
+// 1文字ずつの色の種類（tk-kw など）。色を付けない字は ''。写経の入力欄で、字ごとに色と赤い下地を両方付けるのに使う
+export function tokenClasses(code, language) {
+  const source = code || '';
+  const out = new Array(source.length).fill('');
+  const re = build(language);
+  let m = re.exec(source);
+  while (m) {
+    const g = m.groups || {};
+    const cls = g.str ? 'tk-str' : g.com ? 'tk-com' : g.meta ? 'tk-meta' : g.num ? 'tk-num' : g.kw ? 'tk-kw' : 'tk-fn';
+    for (let i = m.index; i < m.index + m[0].length; i += 1) out[i] = cls;
+    if (m[0].length === 0) re.lastIndex += 1;
+    m = re.exec(source);
+  }
+  return out;
+}
