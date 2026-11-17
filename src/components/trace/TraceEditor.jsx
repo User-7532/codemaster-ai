@@ -8,34 +8,75 @@ import { cn } from '@/lib/utils';
 // それ以外: ふつうの入力欄。書いた字のうち、お手本と違うところに赤い下地を付ける（mode="hidden" では付けない）
 // 書いた字は下の層に色付きで描き、入力欄の字は透明にしてカーソルだけを見せる
 //
-// 行ごとに比べるので、1文字飛ばしてもその行の中だけが赤くなり、次の行からはまた正しく比べられる。
+// 比べ方：空行のあるなしと、行頭の字下げの違いは見逃す（形式の違いで赤くしない）。
+// 書いた空でない行を、お手本の空でない行に上から順に対応させ、行頭の空白を除いた中身どうしを1文字ずつ比べる。
+// 1文字飛ばしてもその行の中だけが赤くなり、次の行からはまた正しく比べられる。
 
-const leadingSpaces = (line) => (line.match(/^ */) || [''])[0];
+const leadingSpaces = (line) => (line.match(/^[ \t]*/) || [''])[0];
+const isBlank = (s) => !s || !s.trim();
 
-export function compareLines(model, value) {
+// 表示する行の並び。typed: 書いた行（まだ書いていない行は undefined）、target: 比べるお手本の行
+export function alignLines(model, value) {
   const want = model.split('\n');
   const got = value.split('\n');
+  const nextNonBlank = (k) => {
+    let n = k;
+    while (n < want.length && isBlank(want[n])) n += 1;
+    return n;
+  };
+  const rows = [];
+  let m = 0;
+  got.forEach((line, i) => {
+    const last = i === got.length - 1;
+    if (isBlank(line)) {
+      if (last) {
+        // いま書いている空の行：お手本の次の行（空行ならそのまま空行）を薄く見せる
+        rows.push({ typed: line, target: want[m] ?? '', idx: m });
+        m += 1;
+      } else {
+        if (m < want.length && isBlank(want[m])) m += 1;
+        rows.push({ typed: line, target: null });
+      }
+      return;
+    }
+    const t = nextNonBlank(m);
+    rows.push({ typed: line, target: want[t] ?? '', idx: t });
+    m = t + 1;
+  });
+  for (let k = m; k < want.length; k += 1) rows.push({ typed: undefined, target: want[k] });
+  return rows;
+}
+
+// 書いた行の j 文字目がお手本と違うか（行頭の空白は数えない）
+export function wrongAt(typed, target, j) {
+  const indent = leadingSpaces(typed).length;
+  if (j < indent || target == null) return target == null ? !/\s/.test(typed[j]) : false;
+  const body = target.slice(leadingSpaces(target).length);
+  return typed[j] !== body[j - indent];
+}
+
+export function compareLines(model, value) {
   let ok = 0;
   let bad = 0;
-  got.forEach((line, i) => {
-    const target = want[i] ?? '';
-    for (let j = 0; j < line.length; j += 1) {
-      if (line[j] === target[j]) ok += 1;
-      else bad += 1;
+  alignLines(model, value).forEach(({ typed, target }) => {
+    if (typed === undefined) return;
+    for (let j = leadingSpaces(typed).length; j < typed.length; j += 1) {
+      if (wrongAt(typed, target, j)) bad += 1;
+      else ok += 1;
     }
   });
-  const total = model.replace(/\n/g, '').length || 1;
+  const total = model.split('\n').reduce((n, l) => n + l.trim().length, 0) || 1;
   return { ok, bad, total, progress: Math.min(1, ok / total) };
 }
 
-// 行末の空白と、最後の空行の違いは無視して、完全に写せたかを見る
+// 空行・行頭と行末の空白の違いは無視して、完全に写せたかを見る
 export const sameCode = (a, b) => {
   const norm = (s) =>
     s
       .split('\n')
-      .map((l) => l.replace(/\s+$/, ''))
-      .join('\n')
-      .replace(/\n+$/, '');
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .join('\n');
   return norm(a) === norm(b);
 };
 
@@ -45,7 +86,8 @@ const TraceEditor = forwardRef(function TraceEditor(
 ) {
   const want = useMemo(() => model.split('\n'), [model]);
   const got = value.split('\n');
-  const lineCount = Math.max(want.length, got.length);
+  const rows = useMemo(() => alignLines(model, value), [model, value]);
+  const lineCount = rows.length;
   const widthCh = Math.max(...want.map((l) => l.length), ...got.map((l) => l.length), 30) + 2;
   const showMarks = mode !== 'hidden';
   const areaRef = useRef(null);
@@ -90,7 +132,8 @@ const TraceEditor = forwardRef(function TraceEditor(
       if (autoIndentFromModel && mode !== 'hidden') {
         // 次の行の字下げはお手本どおりに入れる（字下げの打ち込みで時間を使わない）
         const lineIndex = next.slice(0, pos).split('\n').length - 1;
-        const indent = leadingSpaces(want[lineIndex] || '');
+        const row = alignLines(model, next.slice(0, pos))[lineIndex];
+        const indent = leadingSpaces(row?.target || '');
         withIndent = `${next.slice(0, pos)}${indent}${next.slice(pos)}`;
         caret = pos + indent.length;
       } else {
@@ -132,9 +175,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             aria-hidden
             className="trace-pre pointer-events-none absolute inset-0 whitespace-pre px-3 py-3 font-mono text-[13px] leading-6"
           >
-            {Array.from({ length: lineCount }, (_, i) => {
-              const line = got[i];
-              const target = want[i] ?? '';
+            {rows.map(({ typed: line, target }, i) => {
               if (line === undefined) {
                 return (
                   <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/[0.18]">
@@ -142,11 +183,15 @@ const TraceEditor = forwardRef(function TraceEditor(
                   </div>
                 );
               }
+              // 書いた行のあとに続けて、お手本の残りを薄く見せる（字下げの違いはそろえて見せる）
+              const indent = leadingSpaces(line).length;
+              const body = target == null ? '' : target.slice(leadingSpaces(target).length);
+              const rest = line.trim() ? body.slice(line.length - indent) : target || '';
               // 空の行も1行ぶんの高さを保つ（高さが0になると、下の行が上に詰まってずれる）
               return (
                 <div key={i} className="min-h-[1.5rem]">
                   {Array.from(line).map((ch, j) => {
-                    const wrong = ch !== target[j];
+                    const wrong = wrongAt(line, target, j);
                     // 書いた字は種類ごとに色を付けて見せ、お手本と違うところには赤い下地を敷く
                     return (
                       <span
@@ -160,7 +205,7 @@ const TraceEditor = forwardRef(function TraceEditor(
                       </span>
                     );
                   })}
-                  {mode === 'ghost' && <span className="text-[#ece3d6]/[0.18]">{target.slice(line.length)}</span>}
+                  {mode === 'ghost' && <span className="text-[#ece3d6]/[0.18]">{rest}</span>}
                   {line.length === 0 && mode !== 'ghost' ? ' ' : ''}
                 </div>
               );
