@@ -50,7 +50,7 @@ const TraceEditor = forwardRef(function TraceEditor(
   const handleKeyDown = (e) => {
     const el = e.target;
     onFirstKey?.();
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing && e.keyCode !== 229) {
       e.preventDefault();
       const start = el.selectionStart;
       let next;
@@ -93,7 +93,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             <div key={i}>{i + 1}</div>
           ))}
         </div>
-        <div className="relative shrink-0" style={{ width: `calc(${widthCh}ch + 1.5rem)` }}>
+        <div className="relative shrink-0 font-mono text-[13px]" style={{ width: `calc(${widthCh}ch + 1.5rem)` }}>
           <pre
             aria-hidden
             className="pointer-events-none absolute inset-0 whitespace-pre px-3 py-3 font-mono text-[13px] leading-6"
@@ -112,15 +112,13 @@ const TraceEditor = forwardRef(function TraceEditor(
                 <div key={i}>
                   {Array.from(line).map((ch, j) => {
                     const wrong = ch !== target[j];
+                    // 字は透明（場所取りだけ）。違うところに赤い下地を敷く
                     return (
                       <span
                         key={j}
-                        className={cn(
-                          'text-[#ece3d6]',
-                          showMarks && wrong && 'rounded-[2px] bg-[#c2603f]/45 text-[#ffd9cc]'
-                        )}
+                        className={cn('text-transparent', showMarks && wrong && 'rounded-[2px] bg-[#c2603f]/55')}
                       >
-                        {ch === ' ' && showMarks && wrong ? '·' : ch}
+                        {ch}
                       </span>
                     );
                   })}
@@ -134,6 +132,10 @@ const TraceEditor = forwardRef(function TraceEditor(
             ref={ref}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onCompositionEnd={(e) => onChange(e.currentTarget.value)}
+            onKeyUp={(e) => {
+              if (e.currentTarget.value !== value) onChange(e.currentTarget.value);
+            }}
             onKeyDown={handleKeyDown}
             rows={lineCount + 1}
             wrap="off"
@@ -143,7 +145,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             autoComplete="off"
             data-no-ask
             aria-label="写経の入力欄"
-            className="relative block w-full resize-none overflow-hidden whitespace-pre bg-transparent px-3 py-3 font-mono text-[13px] leading-6 text-transparent caret-[#f1b6a2] outline-none"
+            className="relative block w-full resize-none overflow-hidden whitespace-pre bg-transparent px-3 py-3 font-mono text-[13px] leading-6 text-[#ece3d6] caret-[#f1b6a2] outline-none"
           />
         </div>
       </div>
