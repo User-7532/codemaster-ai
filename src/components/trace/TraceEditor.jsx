@@ -186,7 +186,9 @@ const TraceEditor = forwardRef(function TraceEditor(
               // 書いた行のあとに続けて、お手本の残りを薄く見せる（字下げの違いはそろえて見せる）
               const indent = leadingSpaces(line).length;
               const body = target == null ? '' : target.slice(leadingSpaces(target).length);
-              const rest = line.trim() ? body.slice(line.length - indent) : target || '';
+              const rest = line.trim()
+                ? body.slice(line.length - indent)
+                : (target || '').slice(Math.min(line.length, leadingSpaces(target || '').length));
               // 空の行も1行ぶんの高さを保つ（高さが0になると、下の行が上に詰まってずれる）
               return (
                 <div key={i} className="min-h-[1.5rem]">
