@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Flame, Target, RotateCcw, Code2, ArrowRight, Sparkles, Timer, BookOpen, Palette, BarChart3 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { todayISO, toISO } from '@/lib/srs';
+import { QUICK_COUNT, loadReviewItems, readLimit, todaysReviews } from '@/lib/review-plan';
 import { topicWeakness } from '@/lib/insights';
 import StatCard from '@/components/dashboard/StatCard';
 import StageCard from '@/components/dashboard/StageCard';
@@ -69,7 +70,6 @@ export default function Dashboard() {
     const solvedIds = new Set(list.filter((s) => s.verdict === 'correct').map((s) => s.problem_id));
     const attemptedIds = new Set(list.map((s) => s.problem_id));
 
-    const today = todayISO();
     // 今日出すのは上限まで（あふれた分は明日以降にならしてある）
     const due = todaysReviews(reviews).today;
 
@@ -131,10 +131,10 @@ export default function Dashboard() {
         />
         <StatCard
           icon={RotateCcw}
-          label="復習待ち"
+          label="今日の復習"
           value={data.due.length}
           unit="問"
-          hint={data.due.length ? '今日のうちに' : '復習は片付いています'}
+          hint={data.due.length ? `あと${data.due.length}問（1日${readLimit()}問まで）` : '今日の分はおしまい'}
           tone="amber"
           to="/review"
         />
@@ -188,11 +188,11 @@ export default function Dashboard() {
           <div className="rounded-xl border border-border/70 bg-card/50 p-5">
             <div className="flex items-baseline justify-between">
               <h2 className="text-sm font-medium">今日の復習</h2>
-              <span className="font-display text-[11px] text-muted-foreground">{data.due.length}件</span>
+              <span className="font-display text-[11px] text-muted-foreground">あと{data.due.length}問</span>
             </div>
             {data.due.length === 0 ? (
               <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground/80">
-                今日の復習はありません。新しい問題に進みましょう。
+                今日の分はおしまいです。新しい問題に進みましょう。
               </p>
             ) : (
               <ul className="mt-3 divide-y divide-border/60">
@@ -225,12 +225,20 @@ export default function Dashboard() {
                 ))}
               </ul>
             )}
-            <Link
-              to="/review"
-              className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-border/80 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              復習をはじめる <ArrowRight className="h-3 w-3" />
-            </Link>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Link
+                to="/review?quick=1"
+                className={`flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-xs text-primary-foreground transition-opacity hover:opacity-90 ${data.due.length ? '' : 'pointer-events-none opacity-40'}`}
+              >
+                {QUICK_COUNT}問だけやる
+              </Link>
+              <Link
+                to="/review"
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-border/80 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                復習の画面へ <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
           </div>
 
           <div className="rounded-xl border border-border/70 bg-gradient-to-b from-card/80 to-card/40 p-5">
