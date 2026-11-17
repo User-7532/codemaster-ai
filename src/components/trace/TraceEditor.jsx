@@ -130,7 +130,7 @@ const TraceEditor = forwardRef(function TraceEditor(
         <div className="relative shrink-0 font-mono text-[13px]" style={{ width: `calc(${widthCh}ch + 1.5rem)` }}>
           <pre
             aria-hidden
-            className="pointer-events-none absolute inset-0 whitespace-pre px-3 py-3 font-mono text-[13px] leading-6"
+            className="trace-pre pointer-events-none absolute inset-0 whitespace-pre px-3 py-3 font-mono text-[13px] leading-6"
           >
             {Array.from({ length: lineCount }, (_, i) => {
               const line = got[i];

@@ -239,3 +239,7 @@ html.photo-bg main code,
 html.photo-bg main textarea {
   text-shadow: none;
 }
+/* 写経の色付けの層は、入力欄と字の幅を完全にそろえるため斜体にしない */
+.trace-pre .tk-com {
+  font-style: normal;
+}
