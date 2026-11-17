@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useLayoutEffect, useMemo, useRef } from 'react';
 import { autoIndent } from '@/lib/indent';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +46,21 @@ const TraceEditor = forwardRef(function TraceEditor(
   const lineCount = Math.max(want.length, got.length);
   const widthCh = Math.max(...want.map((l) => l.length), ...got.map((l) => l.length), 30) + 2;
   const showMarks = mode !== 'hidden';
+  const areaRef = useRef(null);
+  const pendingCaret = useRef(null);
+
+  // 字下げを足したときのカーソル位置は、画面に反映した直後に合わせる（遅れて合わせると、速く打った字が別の場所に入る）
+  useLayoutEffect(() => {
+    if (pendingCaret.current == null || !areaRef.current) return;
+    areaRef.current.selectionStart = areaRef.current.selectionEnd = pendingCaret.current;
+    pendingCaret.current = null;
+  }, [value]);
+
+  const setRefs = (el) => {
+    areaRef.current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
+  };
 
   // 改行はキーボード（ブラウザ）に入れさせ、入ったあとで字下げだけを足す。
   // 改行キーを横取りすると、スマホのキーボードでは改行が二重に入ることがあるため。
@@ -69,10 +84,8 @@ const TraceEditor = forwardRef(function TraceEditor(
         withIndent = r.value;
         caret = r.caret;
       }
+      if (withIndent !== next) pendingCaret.current = caret;
       onChange(withIndent);
-      requestAnimationFrame(() => {
-        el.selectionStart = el.selectionEnd = caret;
-      });
       return;
     }
     onChange(next);
@@ -84,10 +97,8 @@ const TraceEditor = forwardRef(function TraceEditor(
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = el.selectionStart;
+      pendingCaret.current = start + 4;
       onChange(`${value.slice(0, start)}    ${value.slice(el.selectionEnd)}`);
-      requestAnimationFrame(() => {
-        el.selectionStart = el.selectionEnd = start + 4;
-      });
     }
   };
 
@@ -138,7 +149,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             })}
           </pre>
           <textarea
-            ref={ref}
+            ref={setRefs}
             value={value}
             onChange={handleChange}
             onCompositionEnd={(e) => onChange(e.currentTarget.value)}
