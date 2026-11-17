@@ -603,9 +603,6 @@ export default function Trace() {
     <div className="mx-auto max-w-4xl px-5 pb-16 pt-2 sm:px-8">
       <header>
         <h1 className="font-heading text-2xl">写経</h1>
-        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-          お手本のコードを書き写して、手に型を覚えさせる場所です。なぞり書き → 見ながら → 隠して、と手助けを減らしていきます。写し終えると、同じ型を使う練習問題が増えます。
-        </p>
       </header>
 
       <section className="mt-6 rounded-2xl border border-border/70 bg-card/80 p-5">

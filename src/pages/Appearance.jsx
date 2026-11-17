@@ -15,9 +15,6 @@ export default function Appearance() {
         <ArrowLeft className="h-3 w-3" /> ホームへ戻る
       </Link>
       <h1 className="mt-3 font-display text-3xl leading-tight tracking-tight">見た目を、自分のものに。</h1>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-        背景・ボタンの色・文字の形を選べます。
-      </p>
 
       <div className="mt-7 space-y-4">
         <BackgroundSection settings={settings} update={update} />

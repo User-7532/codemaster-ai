@@ -210,11 +210,7 @@ export default function Review() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <p className="font-display text-[11px] tracking-[0.2em] text-muted-foreground">REVIEW</p>
-        <h1 className="mt-2 font-display text-2xl tracking-tight sm:text-3xl">忘れたころに、もう一度</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          間隔をあけて出し直します。苦手な問題はまとめて集中的に。
-        </p>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">忘れたころに、もう一度</h1>
       </header>
 
       <div className="mt-6 flex flex-wrap gap-1.5">

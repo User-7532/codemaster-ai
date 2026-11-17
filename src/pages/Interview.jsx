@@ -47,11 +47,7 @@ export default function Interview() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <p className="font-display text-[11px] tracking-[0.2em] text-muted-foreground">MOCK INTERVIEW</p>
-        <h1 className="mt-2 font-display text-2xl tracking-tight sm:text-3xl">時間を切って、1問を仕上げる</h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          時間内に出すか、時間切れで自動提出。採点後に面接官目線の評価が返ります。
-        </p>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">時間を切って、1問を仕上げる</h1>
       </header>
 
       <div className="mt-7 grid gap-4 lg:grid-cols-[1fr_300px]">

@@ -78,9 +78,7 @@ export default function Stats() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <p className="font-display text-[11px] tracking-[0.2em] text-muted-foreground">INSIGHT</p>
-        <h1 className="mt-2 font-display text-2xl tracking-tight sm:text-3xl">弱点を見える形に</h1>
-        <p className="mt-2 text-sm text-muted-foreground">採点の記録から自動でまとめています。</p>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">弱点を見える形に</h1>
       </header>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

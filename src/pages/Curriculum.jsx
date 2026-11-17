@@ -78,11 +78,7 @@ export default function Curriculum() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <p className="font-display text-[11px] tracking-[0.2em] text-muted-foreground">CURRICULUM</p>
-        <h1 className="mt-2 font-display text-2xl tracking-tight sm:text-3xl">順番に積み上げる</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          定石 → 低レイヤー → 大型テック級。1問ごとに、口で語るのでなく手で書ける形にします。
-        </p>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">順番に積み上げる</h1>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <div className="h-1 w-40 overflow-hidden rounded-full bg-secondary">
             <div
