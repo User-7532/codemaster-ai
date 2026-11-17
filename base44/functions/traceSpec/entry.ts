@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 
 // お手本を隠して書くときの「問題文」を作る。
-// 何を作るかの1文と、上から順に書くものの手順（お手本の行の範囲つき）。コードそのものは書かない。
+// 手順を書かない問題文（brief）と、何を作るかの1文と、上から順に書くものの手順（お手本の行の範囲つき）。コードそのものは書かない。
 const LANG = { python: 'Python', c: 'C', cpp: 'C++' };
 
 export default async function (req) {
