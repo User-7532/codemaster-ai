@@ -192,7 +192,10 @@ const TraceEditor = forwardRef(function TraceEditor(
 
     // 閉じる字を打ったとき、すぐ後ろに同じ字があれば、新しく足さずにその上を進む
     if (ch && CLOSE_SET.has(ch) && next[pos] === ch && (ch !== '"' && ch !== "'" ? true : value[pos - 2] !== '\\')) {
-      emit(value, pos);
+      // 中身は変わらないので、画面の字とカーソルだけをその場で戻す
+      el.value = value;
+      el.selectionStart = el.selectionEnd = pos;
+      setCaret(pos);
       return;
     }
 
