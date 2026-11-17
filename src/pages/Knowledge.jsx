@@ -249,7 +249,7 @@ export default function Knowledge() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">知識を確かめる</h1>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">知識モード</h1>
       </header>
 
       <DomainPicker

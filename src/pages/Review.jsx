@@ -210,7 +210,7 @@ export default function Review() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">忘れたころに、もう一度</h1>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">復習</h1>
       </header>
 
       <div className="mt-6 flex flex-wrap gap-1.5">

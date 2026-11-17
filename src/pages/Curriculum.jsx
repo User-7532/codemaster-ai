@@ -78,7 +78,7 @@ export default function Curriculum() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">順番に積み上げる</h1>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">カリキュラム</h1>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <div className="h-1 w-40 overflow-hidden rounded-full bg-secondary">
             <div

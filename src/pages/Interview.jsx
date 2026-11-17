@@ -47,7 +47,7 @@ export default function Interview() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:py-12">
       <header>
-        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">時間を切って、1問を仕上げる</h1>
+        <h1 className="font-display text-2xl tracking-tight sm:text-3xl">模擬面接</h1>
       </header>
 
       <div className="mt-7 grid gap-4 lg:grid-cols-[1fr_300px]">
