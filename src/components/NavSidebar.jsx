@@ -23,19 +23,58 @@ const primaryItems = [
   { to: '/review', label: '復習', icon: RotateCcw },
 ];
 
-const allItems = [
-  { to: '/', label: 'ダッシュボード', icon: LayoutDashboard, end: true },
-  { to: '/trace', label: '写経', icon: PenLine },
-  { to: '/curriculum', label: 'カリキュラム', icon: Layers },
-  { to: '/generate', label: 'AI出題', icon: Sparkles },
-  { to: '/interview', label: '模擬面接', icon: Timer },
-  { to: '/knowledge', label: '知識モード', icon: BookOpen },
-  { to: '/review', label: '復習', icon: RotateCcw },
-  { to: '/stats', label: '弱点分析', icon: LineChart },
-  { to: '/appearance', label: '見た目', icon: Palette },
+// 折りたたまない小さな見出しで区切る（全部の項目はいつも見えたまま）
+const home = { to: '/', label: 'ダッシュボード', icon: LayoutDashboard, end: true };
+const groups = [
+  {
+    label: '書く',
+    items: [
+      { to: '/trace', label: '写経', icon: PenLine },
+      { to: '/curriculum', label: 'カリキュラム', icon: Layers },
+      { to: '/generate', label: 'AI出題', icon: Sparkles },
+      { to: '/interview', label: '模擬面接', icon: Timer },
+    ],
+  },
+  {
+    label: '覚える',
+    items: [
+      { to: '/knowledge', label: '知識モード', icon: BookOpen },
+      { to: '/review', label: '復習', icon: RotateCcw },
+    ],
+  },
+  {
+    label: '振り返る',
+    items: [{ to: '/stats', label: '弱点分析', icon: LineChart }],
+  },
 ];
+const settingsItem = { to: '/appearance', label: '見た目', icon: Palette };
+const isPrimary = (i) => primaryItems.some((p) => p.to === i.to);
 
-const extraItems = allItems.filter((i) => !primaryItems.some((p) => p.to === i.to));
+function SideLink({ to, label, icon: Icon, end }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        cn(
+          'group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+          isActive ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+          <span>{label}</span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+const GroupLabel = ({ children }) => (
+  <p className="px-3 pb-1 pt-4 text-[10px] tracking-[0.14em] text-muted-foreground/70">{children}</p>
+);
 
 export default function NavSidebar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -64,36 +103,21 @@ export default function NavSidebar() {
           </p>
           <p className="mt-2 text-[11px] tracking-wide text-muted-foreground">面接のための、手を動かす道場</p>
         </div>
-        <nav className="flex-1 space-y-0.5 px-3">
-          {allItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-primary/10 text-foreground'
-                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
-                  <span>{label}</span>
-                </>
-              )}
-            </NavLink>
+        <nav className="flex-1 overflow-y-auto px-3">
+          <SideLink {...home} />
+          {groups.map((g) => (
+            <div key={g.label}>
+              <GroupLabel>{g.label}</GroupLabel>
+              <div className="space-y-0.5">
+                {g.items.map((item) => (
+                  <SideLink key={item.to} {...item} />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
-        <div className="px-5 py-5">
-          <p className="text-[10px] leading-relaxed text-muted-foreground/80">
-            C++ / Python
-            <br />
-            基礎 → 低レイヤー → 大型テック
-          </p>
+        <div className="border-t border-sidebar-border px-3 py-3">
+          <SideLink {...settingsItem} />
         </div>
       </aside>
 
@@ -126,17 +150,26 @@ export default function NavSidebar() {
                 <SheetTitle className="font-display text-base tracking-tight">メニュー</SheetTitle>
               </SheetHeader>
               <div className="px-3 pb-8">
-                {extraItems.map(({ to, label, icon: Icon }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-foreground transition-colors hover:bg-accent/60"
-                  >
-                    <Icon className="h-4 w-4 text-primary/80" />
-                    {label}
-                  </NavLink>
-                ))}
+                {[...groups, { label: '', items: [settingsItem] }].map((g) => {
+                  const items = g.items.filter((i) => !isPrimary(i));
+                  if (!items.length) return null;
+                  return (
+                    <div key={g.label || 'settings'} className={g.label ? '' : 'mt-2 border-t border-border/60 pt-2'}>
+                      {g.label && <GroupLabel>{g.label}</GroupLabel>}
+                      {items.map(({ to, label, icon: Icon }) => (
+                        <NavLink
+                          key={to}
+                          to={to}
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-foreground transition-colors hover:bg-accent/60"
+                        >
+                          <Icon className="h-4 w-4 text-primary/80" />
+                          {label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             </SheetContent>
           </Sheet>
