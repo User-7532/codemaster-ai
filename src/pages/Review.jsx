@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarClock, Flame, Layers, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { todayISO } from '@/lib/srs';
+import { LIMIT_OPTIONS, QUICK_COUNT, loadReviewItems, readLimit, saveLimit, todaysReviews } from '@/lib/review-plan';
 import { recordKnowledgeAnswer } from '@/lib/knowledge';
 import { clearSession, loadSession, saveSession } from '@/lib/review-session';
 import SessionRunner from '@/components/review/SessionRunner';
@@ -56,6 +57,9 @@ export default function Review() {
   const [idx, setIdx] = useState(() => loadSession()?.idx || 0);
   const [revealed, setRevealed] = useState(false);
   const [dueFilter, setDueFilter] = useState(loadFilter);
+  const [limit, setLimit] = useState(readLimit);
+  const [quickRun, setQuickRun] = useState(false);
+  const [params, setParams] = useSearchParams();
 
   useEffect(() => {
     if (session) saveSession(session, idx);
@@ -67,7 +71,7 @@ export default function Review() {
   }, []);
 
   useEffect(() => {
-    base44.entities.ReviewItem.list({ sort: 'due_date', limit: 200 }).then((page) => setItems(page.items));
+    loadReviewItems().then(setItems).catch(() => setItems([]));
     base44.entities.Submission.list({ sort: '-created_date', limit: 200 }).then((page) => setSubs(page.items));
   }, []);
 
@@ -84,7 +88,9 @@ export default function Review() {
   }, [items]);
 
   const today = todayISO();
-  const due = (items || []).filter((i) => i.due_date <= today);
+  // 今日出すのは上限まで。あふれた分は明日以降にならしてある
+  const plan = todaysReviews(items, limit);
+  const due = plan.today;
   const upcoming = (items || []).filter((i) => i.due_date > today);
 
   // 間違いの多いコード問題。last は最後に解いたときに間違えたかどうか（提出は新しい順に並んでいる）
@@ -149,15 +155,35 @@ export default function Review() {
     }
   };
 
-  const startDue = () => {
-    const queue = buildQueue(dueFilter);
+  const startDue = (count) => {
+    const all = buildQueue(dueFilter);
+    const queue = count ? all.slice(0, count) : all;
     if (queue.length === 0) return;
+    setQuickRun(!!count);
     setSession(queue);
     setIdx(0);
     setRevealed(false);
   };
 
+  // ホームの「5問だけ」から来たときは、すぐ始める
+  useEffect(() => {
+    if (params.get('quick') && items && Object.keys(cards).length + due.length > 0 && !session) {
+      startDue(QUICK_COUNT);
+      setParams({}, { replace: true });
+    }
+  }, [items, cards]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const changeLimit = (n) => {
+    saveLimit(n);
+    setLimit(n);
+    if (n < limit) loadReviewItems().then(setItems).catch(() => {});
+  };
+
+  // セッションを終えたら、解いた結果を反映して今日の残りを数え直す
+  const refresh = () => loadReviewItems().then(setItems).catch(() => {});
+
   const resetSession = () => {
+    refresh();
     clearSession();
     setSession(null);
     setIdx(0);
@@ -219,6 +245,12 @@ export default function Review() {
                 setIdx((i) => i + 1);
               }}
               onReset={resetSession}
+              quick={quickRun}
+              onMore={() => {
+                clearSession();
+                setSession(null);
+                refresh().then(() => setTimeout(() => startDue(QUICK_COUNT), 0));
+              }}
             />
           </div>
         ) : (
@@ -232,19 +264,48 @@ export default function Review() {
                 )}
               </FilterChips>
             )}
-            <button
-              type="button"
-              onClick={startDue}
-              disabled={listed.length === 0}
-              className="w-full rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              今日の復習をまとめて始める（{listed.length}件）
-            </button>
+            <div className="flex items-center justify-between gap-2 px-1 text-[11px] text-muted-foreground">
+              <span>
+                今日あと <span className="font-display text-sm text-foreground">{listed.length}</span> 問
+              </span>
+              <span className="flex items-center gap-1">
+                1日
+                {LIMIT_OPTIONS.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => changeLimit(n)}
+                    className={`rounded-full px-2 py-0.5 ${limit === n ? 'bg-primary/15 text-primary' : 'hover:text-foreground'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+                問まで
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => startDue(QUICK_COUNT)}
+                disabled={listed.length === 0}
+                className="rounded-lg bg-primary py-2.5 text-[12px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                {QUICK_COUNT}問だけやる
+              </button>
+              <button
+                type="button"
+                onClick={() => startDue()}
+                disabled={listed.length === 0}
+                className="rounded-lg border border-border/70 py-2.5 text-[12px] text-foreground transition-colors hover:border-primary/40 disabled:opacity-40"
+              >
+                今日の分をまとめて（{listed.length}問）
+              </button>
+            </div>
             {listed.length === 0 ? (
               due.length === 0 ? (
                 <Empty
                   icon={CalendarClock}
-                  text="今日の復習はありません。新しい問題を解くか、「苦手なコード問題も足す」で苦手を解き直しましょう。"
+                  text={plan.room === 0 ? '今日の分はおしまいです。おつかれさま。' : '今日の復習はありません。新しい問題を解くか、「苦手なコード問題も足す」で苦手を解き直しましょう。'}
                 />
               ) : (
                 <Empty icon={CalendarClock} text="この条件に合う今日の復習はありません。切り替えを外すと、残りの復習が出ます。" />

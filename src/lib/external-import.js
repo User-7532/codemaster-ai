@@ -11,7 +11,6 @@ async function withImageText(text, uris) {
   if (!read) return text;
   return [text, `[添付した画像から読み取った内容]\n${read}`].filter(Boolean).join('\n\n');
 }
-import { questionPreview } from '@/lib/answer-guard';
 import { refineNewCards } from '@/lib/refine-written';
 
 export const IMPORT_MAX = 60000;

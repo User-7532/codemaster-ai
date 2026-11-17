@@ -3,16 +3,23 @@ import { SkipForward } from 'lucide-react';
 import ClozeCard from '@/components/knowledge/ClozeCard';
 import WrittenCard from '@/components/knowledge/WrittenCard';
 
-export default function SessionRunner({ session, idx, revealed, onToggle, onAnswer, onSkip, onReset }) {
+export default function SessionRunner({ session, idx, revealed, onToggle, onAnswer, onSkip, onReset, quick, onMore }) {
   const current = session && idx < session.length ? session[idx] : null;
 
   if (!current) {
     return (
       <div className="rounded-xl border border-border/60 bg-card/40 p-8 text-center">
-        <p className="text-xs text-muted-foreground">セッションはここまでです。</p>
-        <button type="button" onClick={onReset} className="mt-3 text-[11px] text-primary hover:underline">
-          最初に戻る
-        </button>
+        <p className="text-xs text-muted-foreground">{quick ? `${session.length}問できました。` : 'セッションはここまでです。'}</p>
+        <div className="mt-3 flex justify-center gap-2">
+          {quick && onMore && (
+            <button type="button" onClick={onMore} className="rounded-full bg-primary px-4 py-1.5 text-[11px] text-primary-foreground hover:opacity-90">
+              もう5問
+            </button>
+          )}
+          <button type="button" onClick={onReset} className="rounded-full border border-border/70 px-4 py-1.5 text-[11px] text-muted-foreground hover:text-foreground">
+            {quick ? 'ここでやめる' : '最初に戻る'}
+          </button>
+        </div>
       </div>
     );
   }

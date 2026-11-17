@@ -208,7 +208,6 @@ export default function Knowledge() {
     if (result) {
       const extra = [
         result.problems.length ? `コーディング問題${result.problems.length}問` : '',
-        `今日の復習に${result.scheduled}件`,
         result.memoryUpdated ? 'AIの記憶を更新' : '',
       ].filter(Boolean);
       toast({
