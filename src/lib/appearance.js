@@ -161,46 +161,36 @@ export const logoFonts = [
   },
 ];
 
-export const wobbles = [
-  { id: 'off', name: 'なし', note: '毎日まったく同じ色' },
-  { id: 'subtle', name: '控えめ', note: '色味がほんの少しずれる' },
-  { id: 'brisk', name: 'しっかり', note: '日にちごとに色が変わる' },
-];
-
 export const defaultAppearance = {
   background: 'silk',
   accent: 'shu',
   font: 'mincho',
   logoFont: 'serif',
   logoText: 'CodeMaster',
-  wobble: 'subtle',
+  photoFade: 0.75,
   custom: [],
 };
 
-function dayShift(level) {
-  if (level === 'off') return 0;
-  const d = new Date();
-  const seed = d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate();
-  const r = Math.sin(seed * 12.9898) * 43758.5453;
-  const span = level === 'brisk' ? 16 : 6;
-  return Math.round((r - Math.floor(r) - 0.5) * 2 * span);
-}
+export const colorPresets = ['#f6f1e7', '#eef3f7', '#f3efe9', '#edf3ec', '#f5ece8', '#ececf2', '#ffffff', '#e9e4dc'];
 
-function rotateHue(hsl, degrees) {
-  const parts = String(hsl).match(/([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
-  if (!parts) return hsl;
-  const hue = (parseFloat(parts[1]) + degrees + 360) % 360;
-  return `${Math.round(hue)} ${parts[2]}% ${parts[3]}%`;
+// 写真の上にかける白いもやの濃さ（0=写真そのまま、0.9=ほぼ白）
+export function photoFade(settings) {
+  const v = Number(settings?.photoFade);
+  return Number.isFinite(v) ? Math.min(0.92, Math.max(0, v)) : 0.75;
 }
 
 export function backgroundStyle(settings) {
   const value = settings?.background;
   const preset = backgrounds.find((b) => b.id === value);
   if (preset) return preset.style;
+  if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+    return { backgroundColor: value };
+  }
   if (typeof value === 'string' && value.startsWith('http')) {
+    const a = photoFade(settings);
     return {
       backgroundColor: 'hsl(39 40% 94%)',
-      backgroundImage: `linear-gradient(hsl(39 45% 96% / 0.72), hsl(39 40% 94% / 0.82)), url(${value})`,
+      backgroundImage: `linear-gradient(hsl(39 45% 96% / ${a}), hsl(39 40% 94% / ${a})), url(${value})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     };
@@ -212,7 +202,7 @@ export function applyAppearance(settings) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   const accent = accents.find((a) => a.id === settings?.accent) || accents[0];
-  const shifted = rotateHue(accent.hsl, dayShift(settings?.wobble));
+  const shifted = accent.hsl;
 
   root.style.setProperty('--primary', shifted);
   root.style.setProperty('--primary-foreground', accent.fg);

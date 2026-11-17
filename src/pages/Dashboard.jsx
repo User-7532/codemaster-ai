@@ -37,6 +37,14 @@ function streakOf(submissions) {
   return count;
 }
 
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5) return '夜おそくまで、おつかれさま';
+  if (h < 11) return 'おはよう。今日もすこしずつ';
+  if (h < 18) return 'こんにちは。ひと息ついたら、すこし書こう';
+  return 'こんばんは。今日もおつかれさま';
+}
+
 export default function Dashboard() {
   const [subs, setSubs] = useState(null);
   const [problems, setProblems] = useState([]);
@@ -91,12 +99,7 @@ export default function Dashboard() {
           <p className="text-[11px] tracking-[0.14em] text-muted-foreground">
             {new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
           </p>
-          <h1 className="mt-3 font-display text-3xl leading-tight tracking-tight sm:text-4xl">
-            今日は、どこまで<span className="text-primary">書ける</span>ようにする？
-          </h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            型を覚えるより、手を動かして自分でひねり出す。面接で聞かれる順番どおりに、少しずつ積み上げます。
-          </p>
+          <h1 className="mt-1.5 font-display text-xl leading-snug tracking-tight">{greeting()}</h1>
         </div>
         <Link
           to="/appearance"

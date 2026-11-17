@@ -5,7 +5,6 @@ import BackgroundSection from '@/components/appearance/BackgroundSection';
 import ColorSection from '@/components/appearance/ColorSection';
 import FontSection from '@/components/appearance/FontSection';
 import LogoSection from '@/components/appearance/LogoSection';
-import WobbleSection from '@/components/appearance/WobbleSection';
 
 export default function Appearance() {
   const [settings, update] = useAppearance();
@@ -25,7 +24,6 @@ export default function Appearance() {
         <ColorSection settings={settings} update={update} />
         <FontSection settings={settings} update={update} />
         <LogoSection settings={settings} update={update} />
-        <WobbleSection settings={settings} update={update} />
       </div>
     </div>
   );
