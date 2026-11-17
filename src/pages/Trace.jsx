@@ -97,8 +97,28 @@ function SpecText({ text }) {
     );
 }
 
+const SPEC_VIEW_KEY = 'codemaster-trace-spec-view';
+const readSpecView = () => {
+  try {
+    return localStorage.getItem(SPEC_VIEW_KEY) === 'brief' ? 'brief' : 'steps';
+  } catch {
+    return 'steps';
+  }
+};
+
 function SpecPanel({ spec, loading, currentLine }) {
-  if (loading && !spec) {
+  // 手順つき（ヒント多め）と、問題文だけ（何を作るかと、合わせる名前だけ）を切り替える
+  const [view, setView] = useState(readSpecView);
+  const choose = (v) => {
+    setView(v);
+    try {
+      localStorage.setItem(SPEC_VIEW_KEY, v);
+    } catch {
+      // 切り替え自体は使える
+    }
+  };
+
+  if (loading && !(spec?.steps?.length && spec?.brief)) {
     return (
       <div className="flex items-center gap-1.5 rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-[12px] text-muted-foreground">
         <Loader2 className="h-3.5 w-3.5 animate-spin" /> 問題文を用意しています…
@@ -109,27 +129,55 @@ function SpecPanel({ spec, loading, currentLine }) {
   // 今書いている行が入っている手順。行が空いているところなら、その次の手順
   const found = spec.steps.findIndex((st) => currentLine <= st.to);
   const current = found === -1 ? spec.steps.length - 1 : found;
+  const showBrief = view === 'brief' && spec.brief;
+
   return (
     <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3">
-      <p className="text-[12.5px] font-medium">{spec.overview}</p>
-      <ol className="mt-2 space-y-1">
-        {spec.steps.map((st, i) => (
-          <li
-            key={i}
-            className={cn(
-              'flex gap-2 rounded-lg px-2 py-1 text-[12px] leading-relaxed transition-colors',
-              i === current ? 'bg-primary/10 text-foreground' : i < current ? 'text-muted-foreground/60' : 'text-muted-foreground'
-            )}
-          >
-            <span className={cn('mt-[1px] w-4 shrink-0 text-right font-mono text-[11px]', i === current && 'text-primary')}>
-              {i < current ? '✓' : i + 1}
-            </span>
-            <span>
-              <SpecText text={st.text} />
-            </span>
-          </li>
-        ))}
-      </ol>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12.5px] font-medium">{showBrief ? '問題' : spec.overview}</p>
+        <div className="flex shrink-0 rounded-full border border-border/70 p-0.5 text-[10.5px]">
+          {[
+            ['brief', '問題文だけ'],
+            ['steps', '手順つき'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => choose(id)}
+              className={cn(
+                'rounded-full px-2.5 py-0.5 transition-colors',
+                view === id ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {showBrief ? (
+        <p className="mt-2 text-[12.5px] leading-relaxed">
+          <SpecText text={spec.brief} />
+        </p>
+      ) : (
+        <ol className="mt-2 space-y-1">
+          {spec.steps.map((st, i) => (
+            <li
+              key={i}
+              className={cn(
+                'flex gap-2 rounded-lg px-2 py-1 text-[12px] leading-relaxed transition-colors',
+                i === current ? 'bg-primary/10 text-foreground' : i < current ? 'text-muted-foreground/60' : 'text-muted-foreground'
+              )}
+            >
+              <span className={cn('mt-[1px] w-4 shrink-0 text-right font-mono text-[11px]', i === current && 'text-primary')}>
+                {i < current ? '✓' : i + 1}
+              </span>
+              <span>
+                <SpecText text={st.text} />
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
@@ -318,7 +366,7 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
 
   // 隠して書くときの問題文。見ながら書けるようになった写経では、先に用意しておく
   useEffect(() => {
-    if (spec?.steps?.length || specLoading) return;
+    if ((spec?.steps?.length && spec?.brief) || specLoading) return;
     if (mode !== 'hidden' && (drill.level || 0) < 1) return;
     let cancelled = false;
     setSpecLoading(true);
