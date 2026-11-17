@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, Trash2, Check } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { backgrounds } from '@/lib/appearance';
+import { backgrounds, colorPresets, photoFade } from '@/lib/appearance';
 import { Image } from '@/components/ui/image';
 import { cn } from '@/lib/utils';
 import SectionCard from './SectionCard';
@@ -11,6 +11,9 @@ export default function BackgroundSection({ settings, update }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const custom = settings.custom || [];
+  const isPhoto = typeof settings.background === 'string' && settings.background.startsWith('http');
+  const isColor = typeof settings.background === 'string' && /^#[0-9a-fA-F]{6}$/.test(settings.background);
+  const fade = photoFade(settings);
 
   const pick = async (event) => {
     const file = event.target.files?.[0];
@@ -38,7 +41,7 @@ export default function BackgroundSection({ settings, update }) {
   };
 
   return (
-    <SectionCard title="背景" hint="お気に入りの画像も使えます">
+    <SectionCard title="背景" hint="写真・好きな色・用意した柄から選べます">
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {backgrounds.map((bg) => (
           <button
@@ -92,6 +95,63 @@ export default function BackgroundSection({ settings, update }) {
         </button>
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={pick} className="hidden" />
+
+      {isPhoto && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>写真の見え方</span>
+            <span>{fade >= 0.85 ? 'ほんのり' : fade >= 0.6 ? 'やわらかく' : fade >= 0.3 ? 'はっきり' : 'そのまま'}</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="0.9"
+            step="0.05"
+            value={0.9 - fade}
+            onChange={(e) => update({ photoFade: Math.round((0.9 - Number(e.target.value)) * 100) / 100 })}
+            className="mt-1.5 w-full accent-[hsl(var(--primary))]"
+            aria-label="写真の見え方"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground/80">
+            <span>文字が読みやすい</span>
+            <span>写真がよく見える</span>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <p className="text-[11px] text-muted-foreground">好きな色</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          {colorPresets.map((c) => (
+            <button
+              key={c}
+              type="button"
+              title={c}
+              onClick={() => update({ background: c })}
+              className={cn(
+                'h-7 w-7 rounded-full border transition-shadow',
+                settings.background === c ? 'border-primary ring-2 ring-primary/30' : 'border-border/70 hover:border-primary/40'
+              )}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+          <label
+            className={cn(
+              'relative flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[11px] text-muted-foreground hover:text-foreground',
+              isColor && !colorPresets.includes(settings.background) ? 'border-primary ring-2 ring-primary/30' : 'border-border/70'
+            )}
+          >
+            <span className="h-3.5 w-3.5 rounded-full border border-border/70" style={{ backgroundColor: isColor ? settings.background : '#ffffff' }} />
+            自由に選ぶ
+            <input
+              type="color"
+              value={isColor ? settings.background : '#f6f1e7'}
+              onChange={(e) => update({ background: e.target.value })}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+        </div>
+      </div>
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
     </SectionCard>
   );
