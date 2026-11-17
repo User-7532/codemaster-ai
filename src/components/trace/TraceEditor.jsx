@@ -144,10 +144,16 @@ const TraceEditor = forwardRef(function TraceEditor(
 
   // 改行はキーボード（ブラウザ）に入れさせ、入ったあとで字下げだけを足す。
   // 改行キーを横取りすると、スマホのキーボードでは改行が二重に入ることがあるため。
-  const emit = (next, caret) => {
-    if (next !== areaRef.current?.value || caret !== areaRef.current?.selectionStart) pendingCaret.current = caret;
-    setCaret(caret);
-    onChange(next, caret);
+  // 中身を書き換えたときは、カーソルを決めた位置に置き直す。
+  // 中身が変わらないとき（閉じる字の上を進んだとき）は再描画が起きないので、描画のあとにも合わせる
+  const emit = (next, at) => {
+    pendingCaret.current = at;
+    setCaret(at);
+    onChange(next, at);
+    requestAnimationFrame(() => {
+      const el = areaRef.current;
+      if (el && document.activeElement === el && el.value === next) el.selectionStart = el.selectionEnd = at;
+    });
   };
 
   const handleChange = (e) => {
