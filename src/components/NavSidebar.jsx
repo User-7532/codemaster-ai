@@ -10,6 +10,7 @@ import {
   LineChart,
   Menu,
   Palette,
+  PenLine,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import BrandLogo from '@/components/BrandLogo';
@@ -17,13 +18,14 @@ import { cn } from '@/lib/utils';
 
 const primaryItems = [
   { to: '/', label: 'ホーム', icon: LayoutDashboard, end: true },
+  { to: '/trace', label: '写経', icon: PenLine },
   { to: '/curriculum', label: '問題', icon: Layers },
-  { to: '/generate', label: 'AI出題', icon: Sparkles },
   { to: '/review', label: '復習', icon: RotateCcw },
 ];
 
 const allItems = [
   { to: '/', label: 'ダッシュボード', icon: LayoutDashboard, end: true },
+  { to: '/trace', label: '写経', icon: PenLine },
   { to: '/curriculum', label: 'カリキュラム', icon: Layers },
   { to: '/generate', label: 'AI出題', icon: Sparkles },
   { to: '/interview', label: '模擬面接', icon: Timer },

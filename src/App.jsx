@@ -17,6 +17,7 @@ import Knowledge from '@/pages/Knowledge';
 import Review from '@/pages/Review';
 import Stats from '@/pages/Stats';
 import Appearance from '@/pages/Appearance';
+import Trace from '@/pages/Trace';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -55,6 +56,7 @@ const AuthenticatedApp = () => {
         <Route path="/review" element={<Review />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/appearance" element={<Appearance />} />
+        <Route path="/trace" element={<Trace />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
