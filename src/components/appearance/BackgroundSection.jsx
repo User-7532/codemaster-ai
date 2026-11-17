@@ -7,6 +7,30 @@ import { Image } from '@/components/ui/image';
 import { cn } from '@/lib/utils';
 import SectionCard from './SectionCard';
 
+const canOpen = (file) =>
+  new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(true);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(false);
+    };
+    img.src = url;
+  });
+
+async function heicToJpeg(file) {
+  if (await canOpen(file)) return file;
+  // 変換のしくみは大きいので、HEIC を選んだときにだけ読み込む
+  const { default: heic2any } = await import('heic2any');
+  const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+  const blob = Array.isArray(out) ? out[0] : out;
+  return new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' });
+}
+
 export default function BackgroundSection({ settings, update }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -19,16 +43,29 @@ export default function BackgroundSection({ settings, update }) {
   const [editing, setEditing] = useState(null);
 
   // 選んだ写真は、まず整える画面に出す
-  const pick = (event) => {
+  const pick = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    const isHeic = /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+    if (!isHeic && !file.type.startsWith('image/')) {
       setError('画像ファイルを選んでください');
       return;
     }
     setError('');
-    setEditing(file);
+    if (!isHeic) {
+      setEditing(file);
+      return;
+    }
+    // HEIC は Safari 以外では開けないので、まず開けるか試し、だめなら JPEG に変換する
+    setUploading(true);
+    try {
+      setEditing(await heicToJpeg(file));
+    } catch {
+      setError('HEIC の写真を読み込めませんでした。JPEG か PNG で選び直してください');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const uploadEdited = async (file) => {
@@ -100,10 +137,10 @@ export default function BackgroundSection({ settings, update }) {
           className="flex h-[66px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
         >
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          {uploading ? '送信中' : '画像を追加'}
+          {uploading ? '読み込み中' : '画像を追加'}
         </button>
       </div>
-      <input ref={inputRef} type="file" accept="image/*" onChange={pick} className="hidden" />
+      <input ref={inputRef} type="file" accept="image/*,.heic,.heif" onChange={pick} className="hidden" />
 
       {isPhoto && custom.length >= 2 && (
         <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
