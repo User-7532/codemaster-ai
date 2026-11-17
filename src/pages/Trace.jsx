@@ -81,6 +81,62 @@ function ModelPanel({ drill, className }) {
   );
 }
 
+/* ---------------- 隠して書くときの問題文 ---------------- */
+// `名前` はコードどおりに書く必要がある語句。目立たせて表示する
+function SpecText({ text }) {
+  return String(text)
+    .split(/(`[^`]+`)/)
+    .map((part, i) =>
+      part.startsWith('`') && part.endsWith('`') ? (
+        <code key={i} className="rounded bg-muted px-1 py-0.5 font-mono text-[11.5px] text-foreground">
+          {part.slice(1, -1)}
+        </code>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+}
+
+function SpecPanel({ spec, loading, currentLine }) {
+  if (loading && !spec) {
+    return (
+      <div className="flex items-center gap-1.5 rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-[12px] text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> 問題文を用意しています…
+      </div>
+    );
+  }
+  if (!spec?.steps?.length) return null;
+  // 今書いている行が入っている手順。行が空いているところなら、その次の手順
+  const idx = Math.max(
+    0,
+    spec.steps.findIndex((st) => currentLine <= st.to)
+  );
+  const current = idx === -1 ? spec.steps.length - 1 : idx;
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3">
+      <p className="text-[12.5px] font-medium">{spec.overview}</p>
+      <ol className="mt-2 space-y-1">
+        {spec.steps.map((st, i) => (
+          <li
+            key={i}
+            className={cn(
+              'flex gap-2 rounded-lg px-2 py-1 text-[12px] leading-relaxed transition-colors',
+              i === current ? 'bg-primary/10 text-foreground' : i < current ? 'text-muted-foreground/60' : 'text-muted-foreground'
+            )}
+          >
+            <span className={cn('mt-[1px] w-4 shrink-0 text-right font-mono text-[11px]', i === current && 'text-primary')}>
+              {i < current ? '✓' : i + 1}
+            </span>
+            <span>
+              <SpecText text={st.text} />
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /* ---------------- 写経している画面 ---------------- */
 function TraceSession({ drill, onUpdate, onStartNext }) {
   const navigate = useNavigate();
@@ -100,6 +156,8 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
   const [nextSteps, setNextSteps] = useState(drill.next_steps || []);
   const [nextLoading, setNextLoading] = useState(false);
   const [startingNext, setStartingNext] = useState(null);
+  const [spec, setSpec] = useState(drill.spec || null);
+  const [specLoading, setSpecLoading] = useState(false);
   const lastBad = useRef(0);
   const editorRef = useRef(null);
 
@@ -261,6 +319,23 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
     }
   };
 
+  // 隠して書くときの問題文。見ながら書けるようになった写経では、先に用意しておく
+  useEffect(() => {
+    if (spec?.steps?.length || specLoading) return;
+    if (mode !== 'hidden' && (drill.level || 0) < 1) return;
+    let cancelled = false;
+    setSpecLoading(true);
+    base44.functions
+      .invoke('traceSpec', { drill_id: drill.id })
+      .then((res) => !cancelled && res.data?.spec && setSpec(res.data.spec))
+      .catch(() => {})
+      .finally(() => !cancelled && setSpecLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, drill.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentLine = value.split('\n').length;
   const modelVisible = mode === 'side' || showModel || peeking;
   const nextMode = MODES[Math.min(MODES.findIndex((m) => m.id === mode) + 1, 2)];
 
@@ -306,6 +381,8 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
       <div className="h-1 overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.round(stats.progress * 100)}%` }} />
       </div>
+
+      {mode === 'hidden' && <SpecPanel spec={spec} loading={specLoading} currentLine={currentLine} />}
 
       {/* お手本：見ながらモードと、のぞいている間は上に出す。ほかのモードでも開ける */}
       {modelVisible && <ModelPanel drill={drill} className="max-h-[34vh] py-2" />}
