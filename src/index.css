@@ -212,3 +212,19 @@ html.photo-bg .from-card\/80.to-card\/40 {
 html.photo-bg .bg-sidebar\/70 {
   background-color: hsl(var(--sidebar-background) / 0.9);
 }
+
+/* 写真の上にじかに載る文字（見出し・切り替えボタンなど）を読みやすくする */
+html.photo-bg {
+  --muted-foreground: 30 14% 28%;
+}
+html.photo-bg main {
+  text-shadow:
+    0 0 2px hsl(var(--background) / 0.95),
+    0 0 8px hsl(var(--background) / 0.85);
+}
+html.photo-bg main .rounded-full.border:not(.bg-primary\/15):not(.bg-primary\/10):not(.bg-primary\/5):not(.bg-primary) {
+  background-color: hsl(var(--card) / 0.85);
+}
+html.photo-bg main button.rounded-full:not(.border):not([class*='bg-primary']) {
+  background-color: hsl(var(--card) / 0.7);
+}

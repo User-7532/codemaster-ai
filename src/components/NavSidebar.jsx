@@ -98,10 +98,9 @@ export default function NavSidebar() {
       {/* desktop */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/70 backdrop-blur lg:flex">
         <div className="px-5 pb-6 pt-7">
-          <p className="leading-none">
+          <NavLink to="/" className="inline-block leading-none" title="ダッシュボードへ">
             <BrandLogo className="text-xl leading-none" />
-          </p>
-          <p className="mt-2 text-[11px] tracking-wide text-muted-foreground">面接のための、手を動かす道場</p>
+          </NavLink>
         </div>
         <nav className="flex-1 overflow-y-auto px-3">
           <SideLink {...home} />
