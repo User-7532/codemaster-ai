@@ -119,11 +119,33 @@ export function ensureFont(entry) {
   }
 }
 
-// 一覧の見本だけを読むときは、見本の文字だけに絞って軽く読み込む
+// 一覧の見本は、見本の文字だけに絞って軽く読み込む。
+// 本文で使っている同じ名前の字体を上書きしないよう、見本専用の名前に付け替える
+export const previewFamily = (entry) => (entry.google ? `CMPreview-${entry.google}` : entry.family || null);
+export const previewStack = (entry) =>
+  entry.google ? `'${previewFamily(entry)}', ${entry.stack}` : entry.stack;
+
+const previewed = new Set();
 export function ensurePreviews(entries) {
-  const google = entries.filter((e) => e.google).map((e) => `family=${e.google}`);
-  for (let i = 0; i < google.length; i += 20) {
-    addLink(`https://fonts.googleapis.com/css2?${google.slice(i, i + 20).join('&')}&text=${encodeURIComponent(PREVIEW_TEXT + 'CodeMaster')}&display=swap`);
-  }
+  if (typeof document === 'undefined') return;
   entries.filter((e) => e.url).forEach(ensureFont);
+  const todo = entries.filter((e) => e.google && !previewed.has(e.google));
+  todo.forEach((e) => previewed.add(e.google));
+  for (let i = 0; i < todo.length; i += 15) {
+    const chunk = todo.slice(i, i + 15);
+    const url = `https://fonts.googleapis.com/css2?${chunk.map((e) => `family=${e.google}`).join('&')}&text=${encodeURIComponent(PREVIEW_TEXT + 'CodeMaster')}&display=swap`;
+    fetch(url)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((css) => {
+        if (!css) return;
+        let out = css;
+        chunk.forEach((e) => {
+          out = out.split(`font-family: '${e.name}'`).join(`font-family: '${previewFamily(e)}'`);
+        });
+        const style = document.createElement('style');
+        style.textContent = out;
+        document.head.appendChild(style);
+      })
+      .catch(() => chunk.forEach((e) => previewed.delete(e.google)));
+  }
 }
