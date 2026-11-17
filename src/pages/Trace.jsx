@@ -233,13 +233,13 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
     return () => clearInterval(t);
   }, [startedAt, done]);
 
-  const stats = compareLines(drill.code, value);
+  const stats = compareLines(drill.code, value, editorRef.current?.selectionStart);
   const seconds = startedAt ? Math.round(((done?.at || now) - startedAt) / 1000) : 0;
 
-  const change = (next) => {
+  const change = (next, caret) => {
     if (done) return;
     if (!startedAt) setStartedAt(Date.now());
-    const s = compareLines(drill.code, next);
+    const s = compareLines(drill.code, next, caret);
     // 間違いの数は、赤い字が増えた分だけ数える（直しても減らない）
     if (s.bad > lastBad.current) setMistakes((m) => m + (s.bad - lastBad.current));
     lastBad.current = s.bad;

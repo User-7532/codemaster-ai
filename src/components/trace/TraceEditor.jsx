@@ -1,4 +1,4 @@
-import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { tokenClasses } from '@/lib/highlight';
 import { autoIndent } from '@/lib/indent';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
 
 const leadingSpaces = (line) => (line.match(/^[ \t]*/) || [''])[0];
 const isBlank = (s) => !s || !s.trim();
+const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+const CLOSE_SET = new Set([')', ']', '}', '"', "'"]);
 
 // 表示する行の並び。typed: 書いた行（まだ書いていない行は undefined）、target: 比べるお手本の行
 export function alignLines(model, value) {
@@ -55,12 +57,25 @@ export function wrongAt(typed, target, j) {
   return typed[j] !== body[j - indent];
 }
 
-export function compareLines(model, value) {
+// カーソルのすぐ後ろにある、自動で入れた閉じかっこ・閉じ引用符は、まだ「書いていない」ものとして比べない
+const CLOSERS_ONLY = /^[)\]}"']+$/;
+export function pendingFrom(value, caret) {
+  if (caret == null) return null;
+  const before = value.slice(0, caret).split('\n');
+  const row = before.length - 1;
+  const col = before[row].length;
+  const rest = value.split('\n')[row]?.slice(col) || '';
+  return CLOSERS_ONLY.test(rest) ? { row, col } : null;
+}
+
+export function compareLines(model, value, caret) {
   let ok = 0;
   let bad = 0;
-  alignLines(model, value).forEach(({ typed, target }) => {
+  const pending = pendingFrom(value, caret);
+  alignLines(model, value).forEach(({ typed, target }, i) => {
     if (typed === undefined) return;
-    for (let j = leadingSpaces(typed).length; j < typed.length; j += 1) {
+    const end = pending && pending.row === i ? pending.col : typed.length;
+    for (let j = leadingSpaces(typed).length; j < end; j += 1) {
       if (wrongAt(typed, target, j)) bad += 1;
       else ok += 1;
     }
@@ -94,6 +109,15 @@ const TraceEditor = forwardRef(function TraceEditor(
   const pendingCaret = useRef(null);
   // 日本語などを変換している間は、確定前の字を入力欄そのものに見せる（色付きの層にはまだ入っていないため）
   const [composing, setComposing] = useState(false);
+  const [caret, setCaret] = useState(null);
+  useEffect(() => {
+    const onSel = () => {
+      if (document.activeElement === areaRef.current) setCaret(areaRef.current.selectionStart);
+    };
+    document.addEventListener('selectionchange', onSel);
+    return () => document.removeEventListener('selectionchange', onSel);
+  }, []);
+  const pending = pendingFrom(value, caret);
   const colors = useMemo(() => tokenClasses(value, language), [value, language]);
   const lineStarts = useMemo(() => {
     const starts = [];
@@ -120,32 +144,71 @@ const TraceEditor = forwardRef(function TraceEditor(
 
   // 改行はキーボード（ブラウザ）に入れさせ、入ったあとで字下げだけを足す。
   // 改行キーを横取りすると、スマホのキーボードでは改行が二重に入ることがあるため。
+  const emit = (next, caret) => {
+    if (next !== areaRef.current?.value || caret !== areaRef.current?.selectionStart) pendingCaret.current = caret;
+    setCaret(caret);
+    onChange(next, caret);
+  };
+
   const handleChange = (e) => {
     const el = e.target;
     const next = el.value;
     const pos = el.selectionStart;
-    const insertedNewline =
-      next.length === value.length + 1 && next[pos - 1] === '\n' && next.slice(0, pos - 1) + next.slice(pos) === value;
-    if (insertedNewline) {
-      let withIndent;
-      let caret;
-      if (autoIndentFromModel && mode !== 'hidden') {
-        // 次の行の字下げはお手本どおりに入れる（字下げの打ち込みで時間を使わない）
-        const lineIndex = next.slice(0, pos).split('\n').length - 1;
-        const row = alignLines(model, next.slice(0, pos))[lineIndex];
-        const indent = leadingSpaces(row?.target || '');
-        withIndent = `${next.slice(0, pos)}${indent}${next.slice(pos)}`;
-        caret = pos + indent.length;
-      } else {
-        const r = autoIndent({ value, start: pos - 1, end: pos - 1, language });
-        withIndent = r.value;
-        caret = r.caret;
-      }
-      if (withIndent !== next) pendingCaret.current = caret;
-      onChange(withIndent);
+    if (composing) {
+      onChange(next, pos);
       return;
     }
-    onChange(next);
+    const insertedOne = next.length === value.length + 1 && next.slice(0, pos - 1) + next.slice(pos) === value;
+    const ch = insertedOne ? next[pos - 1] : '';
+
+    if (ch === '\n') {
+      const lineIndex = next.slice(0, pos).split('\n').length - 1;
+      let indent;
+      if (autoIndentFromModel && mode !== 'hidden') {
+        // 次の行の字下げはお手本どおりに入れる（字下げの打ち込みで時間を使わない）
+        const row = alignLines(model, next.slice(0, pos))[lineIndex];
+        indent = leadingSpaces(row?.target || '');
+      } else {
+        const r = autoIndent({ value, start: pos - 1, end: pos - 1, language });
+        indent = leadingSpaces(r.value.slice(0, r.caret).split('\n').pop());
+      }
+      // { と } の間で改行したら、閉じかっこは次の行に送る
+      const opener = next[pos - 2];
+      if (PAIRS[opener] && opener !== '"' && opener !== "'" && next[pos] === PAIRS[opener]) {
+        const base = leadingSpaces(next.slice(0, pos - 1).split('\n').pop());
+        const inner = indent.length > base.length ? indent : `${base}    `;
+        emit(`${next.slice(0, pos)}${inner}\n${base}${next.slice(pos)}`, pos + inner.length);
+        return;
+      }
+      emit(`${next.slice(0, pos)}${indent}${next.slice(pos)}`, pos + indent.length);
+      return;
+    }
+
+    // 閉じる字を打ったとき、すぐ後ろに同じ字があれば、新しく足さずにその上を進む
+    if (ch && CLOSE_SET.has(ch) && next[pos] === ch && (ch !== '"' && ch !== "'" ? true : value[pos - 2] !== '\\')) {
+      emit(value, pos);
+      return;
+    }
+
+    // 開く字を打ったら、閉じる字も一緒に入れて、カーソルは間に置く
+    if (ch && PAIRS[ch]) {
+      const prev = next[pos - 2] || '';
+      const quote = ch === '"' || ch === "'";
+      if (!quote || !/[\w\\]/.test(prev)) {
+        emit(`${next.slice(0, pos)}${PAIRS[ch]}${next.slice(pos)}`, pos);
+        return;
+      }
+    }
+
+    // 空のかっこの中で1字消したら、閉じる字も一緒に消す
+    const deletedOne = next.length === value.length - 1 && value.slice(0, pos) + value.slice(pos + 1) === next;
+    if (deletedOne && PAIRS[value[pos]] && next[pos] === PAIRS[value[pos]]) {
+      emit(next.slice(0, pos) + next.slice(pos + 1), pos);
+      return;
+    }
+
+    setCaret(pos);
+    onChange(next, pos);
   };
 
   const handleKeyDown = (e) => {
@@ -154,8 +217,7 @@ const TraceEditor = forwardRef(function TraceEditor(
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = el.selectionStart;
-      pendingCaret.current = start + 4;
-      onChange(`${value.slice(0, start)}    ${value.slice(el.selectionEnd)}`);
+      emit(`${value.slice(0, start)}    ${value.slice(el.selectionEnd)}`, start + 4);
     }
   };
 
@@ -193,7 +255,7 @@ const TraceEditor = forwardRef(function TraceEditor(
               return (
                 <div key={i} className="min-h-[1.5rem]">
                   {Array.from(line).map((ch, j) => {
-                    const wrong = wrongAt(line, target, j);
+                    const wrong = !(pending && pending.row === i && j >= pending.col) && wrongAt(line, target, j);
                     // 書いた字は種類ごとに色を付けて見せ、お手本と違うところには赤い下地を敷く
                     return (
                       <span
@@ -220,7 +282,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             onCompositionStart={() => setComposing(true)}
             onCompositionEnd={(e) => {
               setComposing(false);
-              onChange(e.currentTarget.value);
+              onChange(e.currentTarget.value, e.currentTarget.selectionStart);
             }}
             onKeyDown={handleKeyDown}
             rows={lineCount + 1}
