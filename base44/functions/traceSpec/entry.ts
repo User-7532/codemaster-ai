@@ -13,7 +13,7 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const drill = await base44.entities.TraceDrill.get(String(body.drill_id || '')).catch(() => null);
     if (!drill) return Response.json({ error: 'Not found' }, { status: 404 });
-    if (drill.spec?.steps?.length && !body.force) return Response.json({ spec: drill.spec });
+    if (drill.spec?.steps?.length && drill.spec?.brief && !body.force) return Response.json({ spec: drill.spec });
 
     const lines = String(drill.code || '').split('\n');
     const numbered = lines.map((l, i) => `${String(i + 1).padStart(3, ' ')}| ${l}`).join('\n');
@@ -24,6 +24,9 @@ export default async function (req) {
 ${numbered}
 
 作るもの:
+- brief: 試験の問題文のような、手順を書かない問題文。2〜4文。
+  - 何を作るか（データ構造・関数の役割・main で何をして何を表示するか）だけを書き、どう実装するか（処理の順番、添字の増減、使う式など）は書かない。
+  - ただし、答えがお手本と一字一句一致するように、決めないと書けないもの（使うヘッダ、関数名・引数と戻り値の型、グローバル変数の名前・型・大きさ・初期値、表示する内容と書式）は \`名前\` の形で過不足なく入れる。それ以上のヒントは入れない。
 - overview: このプログラムが全体として何をするかを1文（40文字以内）。
 - steps: 上から順に書くものを、まとまりごとに4〜8個。各ステップは
   - text: そこで何を書くかを1〜2文で。簡潔に、しかし何を書けばよいか迷わないように具体的に書く。
@@ -39,6 +42,7 @@ ${numbered}
       response_json_schema: {
         type: 'object',
         properties: {
+          brief: { type: 'string' },
           overview: { type: 'string' },
           steps: {
             type: 'array',
@@ -49,7 +53,7 @@ ${numbered}
             },
           },
         },
-        required: ['overview', 'steps'],
+        required: ['brief', 'overview', 'steps'],
       },
     });
 
@@ -66,7 +70,7 @@ ${numbered}
       .slice(0, 10);
     if (!steps.length) return Response.json({ error: '問題文を作れませんでした' }, { status: 500 });
 
-    const spec = { overview: String(out.overview || '').slice(0, 120), steps };
+    const spec = { brief: String(out.brief || '').slice(0, 600), overview: String(out.overview || '').slice(0, 120), steps };
     await base44.entities.TraceDrill.update(drill.id, { spec });
     return Response.json({ spec });
   } catch (error) {
