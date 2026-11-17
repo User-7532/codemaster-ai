@@ -107,11 +107,8 @@ function SpecPanel({ spec, loading, currentLine }) {
   }
   if (!spec?.steps?.length) return null;
   // 今書いている行が入っている手順。行が空いているところなら、その次の手順
-  const idx = Math.max(
-    0,
-    spec.steps.findIndex((st) => currentLine <= st.to)
-  );
-  const current = idx === -1 ? spec.steps.length - 1 : idx;
+  const found = spec.steps.findIndex((st) => currentLine <= st.to);
+  const current = found === -1 ? spec.steps.length - 1 : found;
   return (
     <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3">
       <p className="text-[12.5px] font-medium">{spec.overview}</p>
