@@ -142,9 +142,6 @@ const TraceEditor = forwardRef(function TraceEditor(
             value={value}
             onChange={handleChange}
             onCompositionEnd={(e) => onChange(e.currentTarget.value)}
-            onKeyUp={(e) => {
-              if (e.currentTarget.value !== value) onChange(e.currentTarget.value);
-            }}
             onKeyDown={handleKeyDown}
             rows={lineCount + 1}
             wrap="off"
