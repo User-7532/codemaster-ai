@@ -228,3 +228,7 @@ html.photo-bg main .rounded-full.border:not(.bg-primary\/15):not(.bg-primary\/10
 html.photo-bg main button.rounded-full:not(.border):not([class*='bg-primary']) {
   background-color: hsl(var(--card) / 0.7);
 }
+html.photo-bg main .bg-primary,
+html.photo-bg main .text-primary-foreground {
+  text-shadow: none;
+}
