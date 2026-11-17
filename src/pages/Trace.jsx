@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
   Check,
+  Github,
   ChevronDown,
   Eye,
   EyeOff,
@@ -81,7 +82,7 @@ function ModelPanel({ drill, className }) {
 }
 
 /* ---------------- 写経している画面 ---------------- */
-function TraceSession({ drill, onUpdate }) {
+function TraceSession({ drill, onUpdate, onStartNext }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const recommended = MODES[Math.min(drill.level || 0, 2)].id;
@@ -95,6 +96,10 @@ function TraceSession({ drill, onUpdate }) {
   const [showModel, setShowModel] = useState(false);
   const [done, setDone] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [gisting, setGisting] = useState(false);
+  const [nextSteps, setNextSteps] = useState(drill.next_steps || []);
+  const [nextLoading, setNextLoading] = useState(false);
+  const [startingNext, setStartingNext] = useState(null);
   const lastBad = useRef(0);
   const editorRef = useRef(null);
 
@@ -210,6 +215,7 @@ function TraceSession({ drill, onUpdate }) {
       }
       const updated = await base44.entities.TraceDrill.update(drill.id, patch);
       onUpdate({ ...drill, ...patch, ...(updated || {}) });
+      loadNextSteps();
       try {
         localStorage.removeItem(KEY_DRAFT(drill.id));
       } catch {
@@ -219,6 +225,39 @@ function TraceSession({ drill, onUpdate }) {
       toast({ title: '記録できませんでした', description: '通信を確かめて、もう一度写し終えてください。', variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 写したコードを GitHub に保存する（練習問題の画面と同じ、本人だけが見られる Gist）
+  const sendToGist = async () => {
+    setGisting(true);
+    try {
+      const code = value.trim() ? value : drill.code;
+      const res = await base44.functions.invoke('exportGist', { title: `${drill.title}（写経）`, code, language: drill.language });
+      if (res.data?.error) throw new Error(res.data.error);
+      if (!res.data?.connected) {
+        toast({ title: 'まだ保存できません', description: 'GitHubの準備ができていません。少し待ってからもう一度お試しください' });
+        return;
+      }
+      window.open(res.data.url, '_blank');
+      toast({ title: 'GitHubに保存しました', description: '写したコードはいつでも見返せます' });
+    } catch (e) {
+      toast({ title: 'GitHubに送れませんでした', description: e.message, variant: 'destructive' });
+    } finally {
+      setGisting(false);
+    }
+  };
+
+  // 写し終えたら、次に写経するとよいものを小さく提案する（今回の書きぶりで難しさを決める）
+  const loadNextSteps = async () => {
+    setNextLoading(true);
+    try {
+      const res = await base44.functions.invoke('suggestNextTrace', { drill_id: drill.id });
+      if (Array.isArray(res.data?.next_steps)) setNextSteps(res.data.next_steps);
+    } catch {
+      // 提案がなくても写経は続けられる
+    } finally {
+      setNextLoading(false);
     }
   };
 
@@ -251,6 +290,16 @@ function TraceSession({ drill, onUpdate }) {
           </span>
           <span>ミス {mistakes}</span>
           {mode === 'hidden' && <span>のぞき {peeks}</span>}
+          <button
+            type="button"
+            onClick={sendToGist}
+            disabled={gisting}
+            className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-3 py-1 font-sans text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-60"
+            title="写したコードをGitHubに保存する（まだ何も書いていなければお手本を保存）"
+          >
+            {gisting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Github className="h-3 w-3" />}
+            {gisting ? '保存中…' : 'コードを保存'}
+          </button>
         </span>
       </div>
 
@@ -359,6 +408,41 @@ function TraceSession({ drill, onUpdate }) {
               </button>
             )}
           </div>
+
+          <div className="mt-5 border-t border-border/60 pt-4">
+            <p className="text-[12px] font-medium">次の写経</p>
+            {nextLoading && nextSteps.length === 0 ? (
+              <p className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> 今回の書きぶりに合わせて選んでいます…
+              </p>
+            ) : (
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                {nextSteps.map((n) => (
+                  <button
+                    key={n.title}
+                    type="button"
+                    disabled={!!startingNext}
+                    onClick={async () => {
+                      setStartingNext(n.title);
+                      try {
+                        await onStartNext?.(n.goal, drill);
+                      } finally {
+                        setStartingNext(null);
+                      }
+                    }}
+                    className="rounded-xl border border-border/70 bg-background/60 p-3 text-left transition-colors hover:border-primary/40 disabled:opacity-60"
+                  >
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{n.step}</span>
+                    <span className="mt-1.5 flex items-center gap-1 text-[12.5px] font-medium">
+                      {startingNext === n.title && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {n.title}
+                    </span>
+                    {n.why && <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">{n.why}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -383,20 +467,29 @@ export default function Trace() {
   }, []);
 
   const active = (drills || []).find((d) => d.id === activeId) || null;
+  // 一番最近写し終えた写経（次のおすすめを出すため）
+  const latestDone = (drills || [])
+    .filter((d) => d.last_done && (d.next_steps || []).length)
+    .sort((a, b) => String(b.last_done).localeCompare(String(a.last_done)) || String(b.updated_date).localeCompare(String(a.updated_date)))[0];
 
-  const create = async (text = goal) => {
+  const create = async (text = goal, opts = {}) => {
     const g = String(text).trim();
     if (!g || busy) return;
+    const lang = opts.language || language;
     setBusy(true);
     try {
       const res = await base44.functions.invoke('generateTrace', {
         goal: g,
-        language,
-        size,
-        done_titles: (drills || []).filter((d) => d.language === language).map((d) => d.title),
+        language: lang,
+        size: opts.size || size,
+        done_titles: (drills || []).filter((d) => d.language === lang).map((d) => d.title),
       });
       if (res.data?.error) throw new Error(res.data.error);
-      const drill = res.data.drill;
+      let drill = res.data.drill;
+      if (opts.from) {
+        drill = { ...drill, from_drill_id: opts.from };
+        base44.entities.TraceDrill.update(drill.id, { from_drill_id: opts.from }).catch(() => {});
+      }
       setDrills((prev) => [drill, ...(prev || [])]);
       setGoal('');
       setParams({ id: drill.id });
@@ -425,6 +518,7 @@ export default function Trace() {
             key={active.id}
             drill={active}
             onUpdate={(d) => setDrills((prev) => (prev || []).map((x) => (x.id === d.id ? d : x)))}
+            onStartNext={(g, from) => create(g, { language: from.language, from: from.id })}
           />
         </div>
       </div>
@@ -506,6 +600,27 @@ export default function Trace() {
           </button>
         </div>
       </section>
+
+      {latestDone?.next_steps?.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-[13px] font-medium">次のおすすめ（「{latestDone.title}」のあと）</h2>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {latestDone.next_steps.map((n) => (
+              <button
+                key={n.title}
+                type="button"
+                disabled={busy}
+                onClick={() => create(n.goal, { language: latestDone.language, from: latestDone.id })}
+                className="rounded-xl border border-border/70 bg-card/70 p-3 text-left transition-colors hover:border-primary/40 disabled:opacity-60"
+              >
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{n.step}</span>
+                <span className="mt-1.5 block text-[12.5px] font-medium">{n.title}</span>
+                {n.why && <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">{n.why}</span>}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="text-[13px] font-medium">これまでの写経</h2>
