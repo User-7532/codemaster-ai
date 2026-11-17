@@ -1,3 +1,5 @@
+import { ensureFont, findFont } from '@/lib/font-catalog';
+
 export const backgrounds = [
   {
     id: 'silk',
@@ -168,6 +170,8 @@ export const defaultAppearance = {
   logoFont: 'serif',
   logoText: 'CodeMaster',
   photoFade: 0.75,
+  shuffle: 'off',
+  customFonts: [],
   custom: [],
 };
 
@@ -179,8 +183,28 @@ export function photoFade(settings) {
   return Number.isFinite(v) ? Math.min(0.92, Math.max(0, v)) : 0.75;
 }
 
+export const shuffles = [
+  { id: 'off', name: 'しない' },
+  { id: 'daily', name: '毎日' },
+  { id: 'open', name: '開くたび' },
+];
+
+// 自分の写真が2枚以上あるとき、日ごと・開くたびに入れ替える
+const openPick = Math.random();
+export function currentBackground(settings) {
+  const photos = settings?.custom || [];
+  const mode = settings?.shuffle;
+  if (photos.length < 2 || !mode || mode === 'off') return settings?.background;
+  if (mode === 'daily') {
+    const d = new Date();
+    const seed = d.getFullYear() * 400 + (d.getMonth() + 1) * 32 + d.getDate();
+    return photos[seed % photos.length];
+  }
+  return photos[Math.floor(openPick * photos.length)];
+}
+
 export function backgroundStyle(settings) {
-  const value = settings?.background;
+  const value = currentBackground(settings);
   const preset = backgrounds.find((b) => b.id === value);
   if (preset) return preset.style;
   if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
@@ -212,11 +236,18 @@ export function applyAppearance(settings) {
   root.style.setProperty('--sidebar-primary', shifted);
   root.style.setProperty('--sidebar-ring', shifted);
 
-  const font = fonts.find((f) => f.id === settings?.font) || fonts[0];
+  // 本文・見出し：用意した組み合わせか、一覧・追加したファイルから選んだ1つの字体
+  const custom = settings?.customFonts || [];
+  const preset = fonts.find((f) => f.id === settings?.font);
+  const picked = preset ? null : findFont(settings?.font, custom);
+  const font = preset || (picked ? { heading: picked.stack, body: picked.stack, display: picked.stack } : fonts[0]);
+  if (picked) ensureFont(picked);
   root.style.setProperty('--font-heading', font.heading);
   root.style.setProperty('--font-body', font.body);
   root.style.setProperty('--font-display', font.display);
 
-  const logo = logoFonts.find((f) => f.id === settings?.logoFont) || logoFonts[0];
-  root.style.setProperty('--font-logo', logo.stack);
+  const logoPreset = logoFonts.find((f) => f.id === settings?.logoFont);
+  const logoPicked = logoPreset ? null : findFont(settings?.logoFont, custom);
+  if (logoPicked) ensureFont(logoPicked);
+  root.style.setProperty('--font-logo', (logoPreset || logoPicked || logoFonts[0]).stack);
 }
