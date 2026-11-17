@@ -123,13 +123,14 @@ const TraceEditor = forwardRef(function TraceEditor(
               const target = want[i] ?? '';
               if (line === undefined) {
                 return (
-                  <div key={i} className="text-[#ece3d6]/25">
+                  <div key={i} className="min-h-6 text-[#ece3d6]/25">
                     {mode === 'ghost' ? target || ' ' : ' '}
                   </div>
                 );
               }
+              // 空の行も1行ぶんの高さを保つ（高さが0になると、下の行が上に詰まってずれる）
               return (
-                <div key={i}>
+                <div key={i} className="min-h-6">
                   {Array.from(line).map((ch, j) => {
                     const wrong = ch !== target[j];
                     // 字は透明（場所取りだけ）。違うところに赤い下地を敷く
