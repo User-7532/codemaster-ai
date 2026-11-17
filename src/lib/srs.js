@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { countDoneToday } from '@/lib/review-plan';
 
 const STEPS = [1, 3, 7, 14, 30, 60];
 
@@ -33,6 +34,8 @@ export async function recordReview({ item_type, item_id, title, topic, correct }
   const { items } = await base44.entities.ReviewItem.filter({ item_type, item_id }, { limit: 1 });
   const existing = items[0];
   const next = nextSchedule(existing, correct);
+  // 今日が期日だったものを解いたら、今日の分として数える
+  if (existing && existing.due_date <= todayISO()) countDoneToday();
   if (existing) {
     return base44.entities.ReviewItem.update(existing.id, { ...next, title, topic });
   }

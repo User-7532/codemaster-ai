@@ -11,27 +11,13 @@ async function withImageText(text, uris) {
   if (!read) return text;
   return [text, `[添付した画像から読み取った内容]\n${read}`].filter(Boolean).join('\n\n');
 }
-import { todayISO } from '@/lib/srs';
 import { questionPreview } from '@/lib/answer-guard';
 import { refineNewCards } from '@/lib/refine-written';
 
 export const IMPORT_MAX = 60000;
 export const IMPORT_MIN = 40;
 
-// 取り込んだ問題を、解く前から今日の復習に並べる（すでに予定があるものは触らない）
-async function scheduleToday(entries) {
-  if (!entries.length) return 0;
-  const records = entries.map((e) => ({
-    ...e,
-    due_date: todayISO(),
-    interval_days: 0,
-    streak: 0,
-  }));
-  await base44.entities.ReviewItem.bulkCreate(records);
-  return records.length;
-}
-
-// ほかのAIとの会話を取り込み、知識問題・コーディング問題・アシスタントの記憶・今日の復習に反映する
+// ほかのAIとの会話を取り込み、知識問題・コーディング問題・アシスタントの記憶に反映する
 export async function importExternal(raw, imageUris = []) {
   const text = (await withImageText(String(raw || '').trim(), imageUris)).slice(0, IMPORT_MAX);
   if (text.length < IMPORT_MIN) throw new Error('貼り付けた文章が短すぎます。対話をそのまま貼り付けてください。');
@@ -70,17 +56,8 @@ export async function importExternal(raw, imageUris = []) {
     .map((r) => r.value.data.problem);
   if (made.some((r) => r.status === 'rejected' || !r.value?.data?.problem)) errors.push('コーディング問題の一部');
 
-  let scheduled = 0;
-  try {
-    scheduled = await scheduleToday([
-      ...cards.map((c) => ({ item_type: 'knowledge', item_id: c.id, title: questionPreview(c, 40) || '知識カード', topic: c.domain })),
-      ...problems.map((p) => ({ item_type: 'problem', item_id: p.id, title: p.title, topic: (p.topics || [])[0] || '' })),
-    ]);
-  } catch {
-    errors.push('復習の予定');
-  }
-
-  return { cards, problems, scheduled, memoryUpdated: !!digest?.updated, errors };
+  // 取り込んだ問題は、まだ解いていないので復習には入れない（解いたときに復習の予定ができる）
+  return { cards, problems, scheduled: 0, memoryUpdated: !!digest?.updated, errors };
 }
 
 // 取り込んだ結果を、短い報告文にする
@@ -92,7 +69,6 @@ export function importReport(result) {
   } else {
     lines.push('・コーディング問題: 会話にコードの題材がなかったので、作っていません');
   }
-  lines.push(`・今日の復習に${result.scheduled}件追加しました`);
   if (result.memoryUpdated) lines.push('・会話の要点を覚えました。これからの返答に反映します');
   if (result.errors.length) lines.push(`うまくいかなかったもの: ${result.errors.join('、')}`);
   return lines.join('\n');
