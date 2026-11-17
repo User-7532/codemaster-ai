@@ -30,11 +30,12 @@
       "type": "number"
     },
     "source": {
-      "description": "\u51fa\u984c\u5143",
+      "description": "\u51fa\u984c\u5143\u3002trace=\u5199\u7d4c\u306e\u3042\u3068\u306b\u4f5c\u3063\u305f\u7df4\u7fd2\u554f\u984c",
       "enum": [
         "curriculum",
         "ai",
-        "interview"
+        "interview",
+        "trace"
       ],
       "type": "string"
     },
@@ -93,6 +94,10 @@
         "type": "string"
       },
       "type": "array"
+    },
+    "trace_id": {
+      "description": "\u3082\u3068\u306b\u306a\u3063\u305f\u5199\u7d4c",
+      "type": "string"
     }
   },
   "required": [
@@ -101,6 +106,7 @@
     "difficulty",
     "stage"
   ],
+  "type": "object",
   "rls": {
     "create": {
       "created_by_id": "{{user.id}}"
@@ -114,6 +120,5 @@
     "update": {
       "created_by_id": "{{user.id}}"
     }
-  },
-  "type": "object"
+  }
 }
