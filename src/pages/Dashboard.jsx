@@ -55,7 +55,7 @@ export default function Dashboard() {
     base44.entities.Problem.filter({ source: 'curriculum' }, { sort: 'order_index', limit: 200 }).then((page) =>
       setProblems(page.items)
     );
-    base44.entities.ReviewItem.list({ sort: 'due_date', limit: 200 }).then((page) => setReviews(page.items));
+    loadReviewItems().then(setReviews).catch(() => setReviews([]));
   }, []);
 
   const data = useMemo(() => {
@@ -70,7 +70,8 @@ export default function Dashboard() {
     const attemptedIds = new Set(list.map((s) => s.problem_id));
 
     const today = todayISO();
-    const due = reviews.filter((r) => r.due_date <= today);
+    // 今日出すのは上限まで（あふれた分は明日以降にならしてある）
+    const due = todaysReviews(reviews).today;
 
     return {
       streak: streakOf(list),

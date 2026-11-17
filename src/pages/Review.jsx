@@ -60,6 +60,7 @@ export default function Review() {
   const [limit, setLimit] = useState(readLimit);
   const [quickRun, setQuickRun] = useState(false);
   const [params, setParams] = useSearchParams();
+  const [pendingQuick, setPendingQuick] = useState(() => !!params.get('quick'));
 
   useEffect(() => {
     if (session) saveSession(session, idx);
@@ -78,7 +79,7 @@ export default function Review() {
   useEffect(() => {
     const knowledgeIds = (items || []).filter((i) => i.item_type === 'knowledge').map((i) => i.item_id);
     if (knowledgeIds.length === 0) return;
-    base44.entities.KnowledgeCard.filter({ id: { $in: knowledgeIds } }, { limit: 100 }).then((page) => {
+    base44.entities.KnowledgeCard.filter({ id: { $in: knowledgeIds } }, { limit: 500 }).then((page) => {
       const map = {};
       page.items.forEach((c) => {
         map[c.id] = c;
@@ -165,13 +166,14 @@ export default function Review() {
     setRevealed(false);
   };
 
-  // ホームの「5問だけ」から来たときは、すぐ始める
+  // ホームの「5問だけ」や「もう5問」は、今日の分と問題文が読み込めてから始める
+  const cardsReady = due.every((i) => i.item_type !== 'knowledge' || cards[i.item_id]);
   useEffect(() => {
-    if (params.get('quick') && items && Object.keys(cards).length + due.length > 0 && !session) {
-      startDue(QUICK_COUNT);
-      setParams({}, { replace: true });
-    }
-  }, [items, cards]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!pendingQuick || !items || !cardsReady) return;
+    setPendingQuick(false);
+    if (params.get('quick')) setParams({}, { replace: true });
+    startDue(QUICK_COUNT);
+  }, [pendingQuick, items, cardsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const changeLimit = (n) => {
     saveLimit(n);
@@ -249,7 +251,7 @@ export default function Review() {
               onMore={() => {
                 clearSession();
                 setSession(null);
-                refresh().then(() => setTimeout(() => startDue(QUICK_COUNT), 0));
+                refresh().then(() => setPendingQuick(true));
               }}
             />
           </div>
