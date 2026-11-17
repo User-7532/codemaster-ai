@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, Trash2, Check } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { backgrounds, colorPresets, photoFade } from '@/lib/appearance';
+import { backgrounds, colorPresets, photoFade, shuffles } from '@/lib/appearance';
+import ImageEditor from './ImageEditor';
 import { Image } from '@/components/ui/image';
 import { cn } from '@/lib/utils';
 import SectionCard from './SectionCard';
@@ -15,7 +16,10 @@ export default function BackgroundSection({ settings, update }) {
   const isColor = typeof settings.background === 'string' && /^#[0-9a-fA-F]{6}$/.test(settings.background);
   const fade = photoFade(settings);
 
-  const pick = async (event) => {
+  const [editing, setEditing] = useState(null);
+
+  // 選んだ写真は、まず整える画面に出す
+  const pick = (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -23,11 +27,16 @@ export default function BackgroundSection({ settings, update }) {
       setError('画像ファイルを選んでください');
       return;
     }
-    setUploading(true);
     setError('');
+    setEditing(file);
+  };
+
+  const uploadEdited = async (file) => {
+    setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       update({ custom: [...custom, file_url], background: file_url });
+      setEditing(null);
     } catch {
       setError('アップロードできませんでした。もう一度お試しください');
     } finally {
@@ -96,6 +105,27 @@ export default function BackgroundSection({ settings, update }) {
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={pick} className="hidden" />
 
+      {isPhoto && custom.length >= 2 && (
+        <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <span>自分の写真を入れ替える</span>
+          <span className="flex gap-1">
+            {shuffles.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => update({ shuffle: m.id })}
+                className={cn(
+                  'rounded-full px-2.5 py-0.5',
+                  (settings.shuffle || 'off') === m.id ? 'bg-primary/15 text-primary' : 'hover:text-foreground'
+                )}
+              >
+                {m.name}
+              </button>
+            ))}
+          </span>
+        </div>
+      )}
+
       {isPhoto && (
         <div className="mt-4">
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
@@ -153,6 +183,7 @@ export default function BackgroundSection({ settings, update }) {
         </div>
       </div>
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
+      <ImageEditor file={editing} onCancel={() => setEditing(null)} onDone={uploadEdited} />
     </SectionCard>
   );
 }
