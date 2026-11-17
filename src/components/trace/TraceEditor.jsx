@@ -123,7 +123,7 @@ const TraceEditor = forwardRef(function TraceEditor(
               const target = want[i] ?? '';
               if (line === undefined) {
                 return (
-                  <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/25">
+                  <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/[0.12]">
                     {mode === 'ghost' ? target || ' ' : ' '}
                   </div>
                 );
@@ -143,7 +143,7 @@ const TraceEditor = forwardRef(function TraceEditor(
                       </span>
                     );
                   })}
-                  {mode === 'ghost' && <span className="text-[#ece3d6]/25">{target.slice(line.length)}</span>}
+                  {mode === 'ghost' && <span className="text-[#ece3d6]/[0.12]">{target.slice(line.length)}</span>}
                   {line.length === 0 && mode !== 'ghost' ? ' ' : ''}
                 </div>
               );

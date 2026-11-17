@@ -232,3 +232,10 @@ html.photo-bg main .bg-primary,
 html.photo-bg main .text-primary-foreground {
   text-shadow: none;
 }
+/* コードの画面には文字のふちを付けない（お手本の薄い文字が光って見えてしまう） */
+html.photo-bg main .font-mono,
+html.photo-bg main pre,
+html.photo-bg main code,
+html.photo-bg main textarea {
+  text-shadow: none;
+}
