@@ -1,7 +1,9 @@
 import { logoFonts } from '@/lib/appearance';
-import { cn } from '@/lib/utils';
+import FontPicker from './FontPicker';
 import { Input } from '@/components/ui/input';
 import SectionCard from './SectionCard';
+
+const presets = logoFonts.map((f) => ({ id: f.id, name: f.name, note: f.note, stack: f.stack }));
 
 export default function LogoSection({ settings, update }) {
   const name = settings.logoText || '';
@@ -23,30 +25,16 @@ export default function LogoSection({ settings, update }) {
         空白を入れて2語にすると、うしろの語がボタンの色になります（例: Code Master）
       </p>
 
-      <p className="mt-5 text-[11px] text-muted-foreground">ロゴの字体</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {logoFonts.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => update({ logoFont: f.id })}
-            className={cn(
-              'flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
-              settings.logoFont === f.id ? 'border-primary/60 bg-primary/5' : 'border-border/70 hover:border-primary/40'
-            )}
-          >
-            <span>
-              <span className="block text-xs text-foreground">{f.name}</span>
-              <span className="mt-0.5 block text-[10px] text-muted-foreground">{f.note}</span>
-            </span>
-            <span
-              className={cn('shrink-0 text-sm text-primary', f.sampleClass)}
-              style={{ fontFamily: f.stack }}
-            >
-              {f.sample}
-            </span>
-          </button>
-        ))}
+      <p className="mt-4 text-[11px] text-muted-foreground">ロゴの字体</p>
+      <div className="mt-1.5">
+        <FontPicker
+          value={settings.logoFont}
+          onChange={(id) => update({ logoFont: id })}
+          settings={settings}
+          update={update}
+          presets={presets}
+          sample={(name || 'CodeMaster').slice(0, 12)}
+        />
       </div>
     </SectionCard>
   );
