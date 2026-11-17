@@ -47,31 +47,40 @@ const TraceEditor = forwardRef(function TraceEditor(
   const widthCh = Math.max(...want.map((l) => l.length), ...got.map((l) => l.length), 30) + 2;
   const showMarks = mode !== 'hidden';
 
-  const handleKeyDown = (e) => {
+  // 改行はキーボード（ブラウザ）に入れさせ、入ったあとで字下げだけを足す。
+  // 改行キーを横取りすると、スマホのキーボードでは改行が二重に入ることがあるため。
+  const handleChange = (e) => {
     const el = e.target;
-    onFirstKey?.();
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing && e.keyCode !== 229) {
-      e.preventDefault();
-      const start = el.selectionStart;
-      let next;
+    const next = el.value;
+    const pos = el.selectionStart;
+    const insertedNewline =
+      next.length === value.length + 1 && next[pos - 1] === '\n' && next.slice(0, pos - 1) + next.slice(pos) === value;
+    if (insertedNewline) {
+      let withIndent;
       let caret;
       if (autoIndentFromModel && mode !== 'hidden') {
-        // 次の行のインデントはお手本どおりに入れる（字下げの打ち込みで時間を使わない）
-        const lineIndex = value.slice(0, start).split('\n').length; // 改行後の行番号（0始まり）
+        // 次の行の字下げはお手本どおりに入れる（字下げの打ち込みで時間を使わない）
+        const lineIndex = next.slice(0, pos).split('\n').length - 1;
         const indent = leadingSpaces(want[lineIndex] || '');
-        next = `${value.slice(0, start)}\n${indent}${value.slice(el.selectionEnd)}`;
-        caret = start + 1 + indent.length;
+        withIndent = `${next.slice(0, pos)}${indent}${next.slice(pos)}`;
+        caret = pos + indent.length;
       } else {
-        const r = autoIndent({ value, start, end: el.selectionEnd, language });
-        next = r.value;
+        const r = autoIndent({ value, start: pos - 1, end: pos - 1, language });
+        withIndent = r.value;
         caret = r.caret;
       }
-      onChange(next);
+      onChange(withIndent);
       requestAnimationFrame(() => {
         el.selectionStart = el.selectionEnd = caret;
       });
       return;
     }
+    onChange(next);
+  };
+
+  const handleKeyDown = (e) => {
+    const el = e.target;
+    onFirstKey?.();
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = el.selectionStart;
@@ -131,7 +140,7 @@ const TraceEditor = forwardRef(function TraceEditor(
           <textarea
             ref={ref}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={handleChange}
             onCompositionEnd={(e) => onChange(e.currentTarget.value)}
             onKeyUp={(e) => {
               if (e.currentTarget.value !== value) onChange(e.currentTarget.value);
