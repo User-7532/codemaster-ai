@@ -194,6 +194,8 @@ const openPick = Math.random();
 export function currentBackground(settings) {
   const photos = settings?.custom || [];
   const mode = settings?.shuffle;
+  // 色や柄を選んでいるときは入れ替えない
+  if (!String(settings?.background || '').startsWith('http')) return settings?.background;
   if (photos.length < 2 || !mode || mode === 'off') return settings?.background;
   if (mode === 'daily') {
     const d = new Date();
