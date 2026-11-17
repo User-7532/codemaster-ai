@@ -12,9 +12,9 @@ import GrowthChart from '@/components/dashboard/GrowthChart';
 import TopicTrendChart from '@/components/dashboard/TopicTrendChart';
 
 const DIFF_META = [
-  { key: 'basic', label: '基礎', title: '型を体に入れる', subtitle: '二本ポインタ、BFS、再帰など王道の型', tone: 'cyan' },
-  { key: 'intermediate', label: '中級', title: '中で起きていること', subtitle: 'メモリ・ポインタ・計算量の感覚を問う問題', tone: 'amber' },
-  { key: 'advanced', label: '上級', title: '大型テック級', subtitle: '時間内に設計まで語る面接水準の問題', tone: 'rose' },
+  { key: 'basic', label: '基礎', tone: 'cyan' },
+  { key: 'intermediate', label: '中級', tone: 'amber' },
+  { key: 'advanced', label: '上級', tone: 'rose' },
 ];
 
 const QUICK = [

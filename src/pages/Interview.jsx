@@ -8,8 +8,8 @@ import VerdictBadge from '@/components/VerdictBadge';
 
 const LIMITS = [25, 40, 60];
 const LEVELS = [
-  { id: 'intermediate', label: '中級', desc: '国内企業の技術面接レベル' },
-  { id: 'advanced', label: '上級', desc: '海外の大型テック水準' },
+  { id: 'intermediate', label: '中級' },
+  { id: 'advanced', label: '上級' },
 ];
 
 export default function Interview() {
@@ -83,7 +83,6 @@ export default function Interview() {
                   }`}
                 >
                   <p className="text-xs text-foreground">{l.label}</p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">{l.desc}</p>
                 </button>
               ))}
             </div>

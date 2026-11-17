@@ -7,9 +7,9 @@ import { LANGUAGES } from '@/lib/languages';
 import { topicWeakness } from '@/lib/insights';
 
 const DIFFICULTIES = [
-  { id: 'basic', label: '基礎', desc: '定石の型をそのまま使う' },
-  { id: 'intermediate', label: '中級', desc: '中で何が起きるかを意識する' },
-  { id: 'advanced', label: '上級', desc: '大型テックの面接水準' },
+  { id: 'basic', label: '基礎' },
+  { id: 'intermediate', label: '中級' },
+  { id: 'advanced', label: '上級' },
 ];
 
 const TOPIC_CHIPS = ['配列', '文字列', 'スタック', 'グラフ', '動的計画法', 'ビット演算', 'メモリ管理', '木構造', '設計'];
@@ -136,7 +136,6 @@ export default function Generate() {
                 }`}
               >
                 <p className="text-xs text-foreground">{d.label}</p>
-                <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">{d.desc}</p>
               </button>
             ))}
           </div>

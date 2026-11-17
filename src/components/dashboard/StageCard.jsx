@@ -8,7 +8,7 @@ const tones = {
   rose: { dot: 'bg-rose-600', bar: 'bg-rose-600/80', text: 'text-rose-800' },
 };
 
-export default function StageCard({ label, title, subtitle, solved, total, tone, to }) {
+export default function StageCard({ label, solved, total, tone, to }) {
   const t = tones[tone];
   const pct = total ? Math.round((solved / total) * 100) : 0;
   const base = 'block rounded-xl border border-border/70 bg-card/60 p-4 transition-colors';
@@ -17,11 +17,9 @@ export default function StageCard({ label, title, subtitle, solved, total, tone,
     <>
       <div className="flex items-center gap-2">
         <span className={cn('h-1.5 w-1.5 rounded-full', t.dot)} />
-        <span className="font-display text-[11px] tracking-widest text-muted-foreground">{label}</span>
+        <span className="text-sm font-medium text-foreground">{label}</span>
         <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />
       </div>
-      <p className="mt-2 text-sm font-medium text-foreground">{title}</p>
-      <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{subtitle}</p>
       <div className="mt-3.5">
         <div className="flex items-baseline justify-between text-[11px]">
           <span className={cn('font-display', t.text)}>{pct}%</span>
