@@ -367,10 +367,10 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
     }
   };
 
-  // 隠して書くときの問題文。見ながら書けるようになった写経では、先に用意しておく
+  // 写経の問題文（なにを作るか）。どのモードでも最初から出す
   useEffect(() => {
+    // 問題文はどのモードでも上に出す（何を作っているかを見失わないように）
     if ((spec?.steps?.length && spec?.brief) || specLoading) return;
-    if (mode !== 'hidden' && (drill.level || 0) < 1) return;
     let cancelled = false;
     setSpecLoading(true);
     base44.functions
@@ -381,7 +381,7 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
     return () => {
       cancelled = true;
     };
-  }, [mode, drill.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drill.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentLine = value.split('\n').length;
   const modelVisible = mode === 'side' || showModel || peeking;
@@ -430,7 +430,7 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
         <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${Math.round(stats.progress * 100)}%` }} />
       </div>
 
-      {mode === 'hidden' && <SpecPanel spec={spec} loading={specLoading} currentLine={currentLine} />}
+      <SpecPanel spec={spec} loading={specLoading} currentLine={currentLine} />
 
       {/* お手本：見ながらモードと、のぞいている間は上に出す。ほかのモードでも開ける */}
       {modelVisible && <ModelPanel drill={drill} className="max-h-[34vh] py-2" />}
