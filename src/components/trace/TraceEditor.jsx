@@ -213,7 +213,7 @@ const TraceEditor = forwardRef(function TraceEditor(
         const prevLine = next.slice(0, pos - 1).split('\n').pop();
         if (!prevLine.trim()) {
           const here = alignLines(model, value.slice(0, pos - 1))[lineIndex - 1];
-          if (here?.target && here.target.trim()) {
+          if (here && ((here.target && here.target.trim()) || (here.idx ?? 0) >= want.length)) {
             el.value = value;
             el.selectionStart = el.selectionEnd = pos - 1;
             return;
