@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { highlight } from '@/lib/highlight';
 import { languageFilename } from '@/lib/languages';
 import { autoIndent } from '@/lib/indent';
+import { linesAround, registerCodeAsk } from '@/lib/selection-ask';
 
 const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
 const CLOSE_SET = new Set([')', ']', '}', '"', "'"]);
@@ -104,7 +105,11 @@ export default function CodeEditor({ value = '', onChange, language = 'cpp', min
             dangerouslySetInnerHTML={{ __html: `${html}\n` }}
           />
           <textarea
-            ref={areaRef}
+            ref={(el) => {
+              areaRef.current = el;
+              registerCodeAsk(el, (a, b) => `【問題を解いている途中の、学習者のコード（> が選んだ行）】\n${linesAround(el.value, a, b, 10)}`);
+            }}
+            data-ask-code
             value={value}
             onChange={handleChange}
             onCompositionStart={() => setComposing(true)}

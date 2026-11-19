@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { tokenClasses } from '@/lib/highlight';
+import { linesAround, registerCodeAsk } from '@/lib/selection-ask';
 import { autoIndent } from '@/lib/indent';
 import { cn } from '@/lib/utils';
 
@@ -162,8 +163,21 @@ const TraceEditor = forwardRef(function TraceEditor(
     pendingCaret.current = null;
   }, [value]);
 
+  // 入力欄で選んだところを質問するとき、AIに渡す周りの情報（書いたコードとお手本の同じあたり）
+  const askRef = useRef(null);
+  askRef.current = (start, end) => {
+    const typed = linesAround(value, start, end);
+    const row = value.slice(0, start).split('\n').length - 1;
+    const last = value.slice(0, end).split('\n').length - 1;
+    const targets = rows
+      .slice(Math.max(0, row - 2), last + 3)
+      .map((r) => r.target)
+      .filter((t) => t != null);
+    return `【写経中。学習者が書いたコード（> が選んだ行）】\n${typed}\n【お手本の同じあたり】\n${targets.join('\n')}\n（赤い印はお手本と違う字。質問が「なぜだめか」なら、お手本との違いと、その違いで何が変わるかを答える）`;
+  };
   const setRefs = (el) => {
     areaRef.current = el;
+    registerCodeAsk(el, (a, b) => askRef.current?.(a, b));
     if (typeof ref === 'function') ref(el);
     else if (ref) ref.current = el;
   };
@@ -358,7 +372,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             autoCapitalize="off"
             autoCorrect="off"
             autoComplete="off"
-            data-no-ask
+            data-ask-code
             aria-label="写経の入力欄"
             className={cn(
               'relative block w-full resize-none overflow-hidden whitespace-pre bg-transparent px-3 py-3 font-mono text-[13px] leading-6 caret-[#f1b6a2] outline-none',

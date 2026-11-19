@@ -97,6 +97,8 @@ export default function AssistantChat() {
     const text = String(raw || '').trim() || (uris.length ? 'この画像について教えて' : '');
     if (!text || busy) return;
     const currentQuote = quote;
+    const currentContext = quoteContext;
+    setQuoteContext('');
     setOpen(true);
     setBusy(true);
     setQuote('');
@@ -111,7 +113,7 @@ export default function AssistantChat() {
         quote: currentQuote,
         page: pageLabelOf(pathname),
         path: pathname,
-        context: quoteContext && currentQuote ? `${quoteContext.slice(0, 1300)}\n\n【画面の内容】\n${visibleContext()}` : visibleContext(),
+        context: currentContext && currentQuote ? `${currentContext.slice(0, 1300)}\n\n【画面の内容】\n${visibleContext()}` : visibleContext(),
       });
       if (res.data?.error) throw new Error(res.data.error);
       setMessages((prev) => [...(prev || []), { id: `a-${Date.now()}`, role: 'assistant', content: res.data.reply }]);
@@ -165,7 +167,10 @@ export default function AssistantChat() {
             onClose={() => setOpen(false)}
             onLoadFrom={loadFrom}
             quote={quote}
-            onClearQuote={() => setQuote('')}
+            onClearQuote={() => {
+              setQuote('');
+              setQuoteContext('');
+            }}
             onQuote={setQuote}
             dragProps={drag.dragProps}
             dragging={drag.dragging}
