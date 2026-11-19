@@ -232,7 +232,17 @@ function SpecPanel({ spec, loading, currentLine, code, language }) {
           ))}
         </div>
       </div>
-      {(names.length > 0 || literals.length > 0) && (
+      {spec.signatures?.length ? (
+        <div className="mt-2 space-y-0.5 rounded-lg bg-muted/40 px-2.5 py-2">
+          <p className="text-[10.5px] text-muted-foreground">名前・型はお手本と合わせます</p>
+          {spec.signatures.map((g, i) => (
+            <div key={i} className="flex flex-wrap items-baseline gap-x-2">
+              <span className="shrink-0 text-[11px] text-muted-foreground">{g.where}:</span>
+              <code className="font-mono text-[12px] text-foreground">{g.code}</code>
+            </div>
+          ))}
+        </div>
+      ) : names.length > 0 || literals.length > 0 ? (
         <div className="mt-2 flex flex-wrap items-center gap-1">
           <span className="text-[11px] text-muted-foreground">使う名前（お手本と同じに）:</span>
           {names.map((n) => (
@@ -242,7 +252,7 @@ function SpecPanel({ spec, loading, currentLine, code, language }) {
             <code key={l} className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">{l}</code>
           ))}
         </div>
-      )}
+      ) : null}
       {showBrief ? (
         <p className="mt-2 text-[12.5px] leading-relaxed">
           <SpecText text={spec.brief} />
