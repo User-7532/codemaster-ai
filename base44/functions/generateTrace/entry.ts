@@ -83,6 +83,7 @@ export default async function (req) {
 タイトル: ${problem.title}
 ${String(problem.statement || '').slice(0, 3000)}
 制約: ${problem.constraints || '特になし'}
+テストケース: ${(problem.test_cases || []).map((t) => `${t.input} → ${t.expected}`).join(' / ') || 'なし'}
 ${template ? `ひな形（関数の名前と引数はこれに合わせる）:\n${template.slice(0, 1500)}` : ''}
 - code は、この問題の素直で標準的な解答にする。ひな形の関数を完成させ、main では問題のテストケースの入力で関数を呼んで結果を表示する。
 - 凝った解き方ではなく、初心者が型として覚えやすい解き方を選ぶ。計算量が大きく悪くならない範囲で、読みやすさを優先する。
