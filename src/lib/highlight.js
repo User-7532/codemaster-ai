@@ -81,3 +81,24 @@ export function tokenClasses(code, language) {
   }
   return out;
 }
+
+// 写経でお手本と一字一句そろえる必要がある「名前」と「そのまま書く文字列」を、お手本のコードから取り出す。
+// 言語のキーワードや標準ライブラリ名（int, while, printf など）は除く。ヘッダ読み込み行も除く。
+export function matchNames(code, language) {
+  const kw = new Set(language === 'python' ? PY_KEYWORDS : language === 'c' ? C_KEYWORDS : CPP_KEYWORDS);
+  const body = String(code || '')
+    .split('\n')
+    .filter((l) => !/^\s*#\s*include/.test(l) && !/^\s*(import|from)\s/.test(l))
+    .join('\n');
+  const LIT = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
+  const literals = [...new Set(body.match(LIT) || [])].slice(0, 20);
+  const noLit = body.replace(LIT, ' ');
+  const names = [];
+  const seen = new Set();
+  for (const w of noLit.match(/[A-Za-z_]\w*/g) || []) {
+    if (kw.has(w) || seen.has(w)) continue;
+    seen.add(w);
+    names.push(w);
+  }
+  return { names: names.slice(0, 40), literals };
+}
