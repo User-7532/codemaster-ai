@@ -63,13 +63,33 @@ export default async function (req) {
       .map((u) => String(u || ''))
       .filter((u) => /^https:\/\//.test(u))
       .slice(0, 5);
-    if (!goal && !imageUrls.length) return Response.json({ error: '身につけたいことを書くか、スクリーンショットを添付してください' }, { status: 400 });
+    // 解けなかったコーディング問題から写経を作るとき
+    const problem = body.problem_id
+      ? await base44.entities.Problem.get(String(body.problem_id)).catch(() => null)
+      : null;
+    const template = problem
+      ? ((problem.templates || []).find((t) => t.language === language) || {}).code || ''
+      : '';
+    if (!goal && !imageUrls.length && !problem) return Response.json({ error: '身につけたいことを書くか、スクリーンショットを添付してください' }, { status: 400 });
 
     const lines = size === 'long' ? '25〜45行' : '10〜25行';
 
     const prompt = `あなたはプログラミング初心者のための写経（お手本のコードを書き写して、手と目で型を覚える練習）の教材を作る先生です。
 
-【学習者が身につけたいこと】${goal || '（文章での指定なし。添付した画像から読み取る）'}${
+【学習者が身につけたいこと】${goal || (problem ? `次の問題の解き方` : '（文章での指定なし。添付した画像から読み取る）')}${
+      problem
+        ? `
+【学習者が解けなかった問題】
+タイトル: ${problem.title}
+${String(problem.statement || '').slice(0, 3000)}
+制約: ${problem.constraints || '特になし'}
+${template ? `ひな形（関数の名前と引数はこれに合わせる）:\n${template.slice(0, 1500)}` : ''}
+- code は、この問題の素直で標準的な解答にする。ひな形の関数を完成させ、main では問題のテストケースの入力で関数を呼んで結果を表示する。
+- 凝った解き方ではなく、初心者が型として覚えやすい解き方を選ぶ。計算量が大きく悪くならない範囲で、読みやすさを優先する。
+- line_notes では、解き方の要になる行（考え方が出ている行）を中心に説明する。
+- follow_up は、この問題と同じではなく、同じ型を使う別の易しい問題にする。`
+        : ''
+    }${
       imageUrls.length
         ? `
 【添付した画像】${imageUrls.length}枚。学習者が読んで分からなかったもの（教科書・解説・ほかのAIとの会話・エラー画面など）のスクリーンショット。
@@ -121,7 +141,8 @@ export default async function (req) {
     const lineCount = code.split('\n').length;
 
     const drill = await base44.entities.TraceDrill.create({
-      goal: goal || `スクリーンショットから: ${String(out.title || '').slice(0, 40)}`,
+      goal: goal || (problem ? `問題「${String(problem.title).slice(0, 40)}」の解き方` : `スクリーンショットから: ${String(out.title || '').slice(0, 40)}`),
+      ...(problem ? { source_problem_id: problem.id } : {}),
       language,
       title: String(out.title || goal || '写経').slice(0, 60),
       summary: String(out.summary || '').slice(0, 400),
