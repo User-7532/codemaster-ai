@@ -174,14 +174,6 @@ const TraceEditor = forwardRef(function TraceEditor(
         const r = autoIndent({ value, start: pos - 1, end: pos - 1, language });
         indent = leadingSpaces(r.value.slice(0, r.caret).split('\n').pop());
       }
-      // { と } の間で改行したら、閉じかっこは次の行に送る
-      const opener = next[pos - 2];
-      if (PAIRS[opener] && opener !== '"' && opener !== "'" && next[pos] === PAIRS[opener]) {
-        const base = leadingSpaces(next.slice(0, pos - 1).split('\n').pop());
-        const inner = indent.length > base.length ? indent : `${base}    `;
-        emit(`${next.slice(0, pos)}${inner}\n${base}${next.slice(pos)}`, pos + inner.length);
-        return;
-      }
       emit(`${next.slice(0, pos)}${indent}${next.slice(pos)}`, pos + indent.length);
       return;
     }
