@@ -102,11 +102,14 @@ export function stripDrill(drill) {
   const { code, lineMap } = stripComments(drill.code, drill.language);
   const lineCount = code.split('\n').length;
   const notes = [];
-  (drill.line_notes || []).forEach((n) => {
+  // コードの行そのものに付いていた解説を先に置き、コメント行に付いていた解説は空いていれば下の行へ
+  const ordered = [...(drill.line_notes || [])].sort((a, b) => (lineMap[a.line] == null) - (lineMap[b.line] == null));
+  ordered.forEach((n) => {
     let line = lineMap[n.line];
     // コメントだけの行に付いていた解説は、すぐ下のコードの行に付け替える
     for (let k = n.line + 1; line == null && k <= n.line + 3; k += 1) line = lineMap[k];
     if (line && line <= lineCount && !notes.some((x) => x.line === line)) notes.push({ ...n, line });
   });
+  notes.sort((a, b) => a.line - b.line);
   return { code, line_notes: notes, spec: null };
 }
