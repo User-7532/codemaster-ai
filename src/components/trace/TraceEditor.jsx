@@ -119,6 +119,8 @@ const TraceEditor = forwardRef(function TraceEditor(
   const showMarks = mode !== 'hidden';
   const areaRef = useRef(null);
   const pendingCaret = useRef(null);
+  // なぞり書きで閉じかっこの行を自動で入れたとき、その行の先頭の位置
+  const pendingAuto = useRef(null);
   // 日本語などを変換している間は、確定前の字を入力欄そのものに見せる（色付きの層にはまだ入っていないため）
   const [composing, setComposing] = useState(false);
   const [caret, setCaret] = useState(null);
@@ -203,6 +205,7 @@ const TraceEditor = forwardRef(function TraceEditor(
         const row = alignLines(model, next.slice(0, pos))[lineIndex];
         const restOfLine = next.slice(pos).split('\n')[0];
         if (row?.target && CLOSER_LINE.test(row.target) && !restOfLine.trim()) {
+          pendingAuto.current = pos;
           emit(`${next.slice(0, pos)}${row.target}${next.slice(pos)}`, pos + row.target.length);
           return;
         }
@@ -217,6 +220,30 @@ const TraceEditor = forwardRef(function TraceEditor(
       }
       emit(`${next.slice(0, pos)}${indent}${next.slice(pos)}`, pos + indent.length);
       return;
+    }
+
+    if (ch === '}' || ch === ')' || ch === ']') {
+      const lineStart = next.lastIndexOf('\n', pos - 1) + 1;
+      const lineEnd = next.indexOf('\n', pos) === -1 ? next.length : next.indexOf('\n', pos);
+      const before = next.slice(lineStart, pos - 1);
+      const after = next.slice(pos, lineEnd);
+      // 自分で } を打った行のすぐ下に、自動で入れた } の行があれば、そちらを使う（} が二重にならないように）
+      if (!before.trim() && !after.trim() && lineEnd < next.length) {
+        const nextLineEnd = next.indexOf('\n', lineEnd + 1) === -1 ? next.length : next.indexOf('\n', lineEnd + 1);
+        const nextLine = next.slice(lineEnd + 1, nextLineEnd);
+        if (CLOSER_LINE.test(nextLine) && nextLine.trim()[0] === ch) {
+          const merged = next.slice(0, lineStart) + next.slice(lineEnd + 1);
+          emit(merged, lineStart + leadingSpaces(nextLine).length + 1);
+          return;
+        }
+      }
+      // 自動で入れた閉じかっこの行のすぐ後ろで同じ字を打ったら、足さない（なぞり書きで } を自動で入れたあとの癖の打鍵）
+      if (!after.trim() && CLOSER_LINE.test(before) && before.trim().endsWith(ch) && pendingAuto.current === lineStart) {
+        el.value = value;
+        el.selectionStart = el.selectionEnd = pos - 1;
+        pendingAuto.current = null;
+        return;
+      }
     }
 
     // 閉じる字を打ったとき、すぐ後ろに同じ字があれば、新しく足さずにその上を進む
