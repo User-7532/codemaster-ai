@@ -12,6 +12,8 @@ const CHIPS_NORMAL = [
   '息抜きに、興味のありそうな話をして',
 ];
 const CHIPS_QUOTE = ['どういう意味？', '詳しく説明して', 'なぜ？'];
+// コードの入力欄で選んだときだけ、先頭に出す
+const CHIPS_CODE = ['どうしてダメ？', ...CHIPS_QUOTE];
 
 export default function AssistantPanel({
   messages,
@@ -22,6 +24,7 @@ export default function AssistantPanel({
   onClose,
   onLoadFrom,
   quote = '',
+  fromCode = false,
   onClearQuote,
   onQuote,
   dragProps,
@@ -99,7 +102,7 @@ export default function AssistantPanel({
   };
 
   // 引用があるときは、その部分についての聞き方だけを出す
-  const chips = quote ? CHIPS_QUOTE : CHIPS_NORMAL;
+  const chips = quote ? (fromCode ? CHIPS_CODE : CHIPS_QUOTE) : CHIPS_NORMAL;
 
   // サジェストは送らずに、入力欄の末尾へ入れて手を加えられるようにする
   const fill = (text) => {

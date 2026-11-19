@@ -167,11 +167,15 @@ export default function AssistantChat() {
             onClose={() => setOpen(false)}
             onLoadFrom={loadFrom}
             quote={quote}
+            fromCode={!!quoteContext}
             onClearQuote={() => {
               setQuote('');
               setQuoteContext('');
             }}
-            onQuote={setQuote}
+            onQuote={(t) => {
+              setQuote(t);
+              setQuoteContext('');
+            }}
             dragProps={drag.dragProps}
             dragging={drag.dragging}
           />
