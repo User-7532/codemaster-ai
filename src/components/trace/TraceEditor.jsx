@@ -14,8 +14,9 @@ import { cn } from '@/lib/utils';
 
 const leadingSpaces = (line) => (line.match(/^[ \t]*/) || [''])[0];
 const isBlank = (s) => !s || !s.trim();
-// 写経では { は自動で閉じない。} は何行も先に来るので、先に入れると行の対応がずれてお手本が乱れるため
-const PAIRS = { '(': ')', '[': ']', '"': '"', "'": "'" };
+const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+// 閉じかっこだけの行（} や }; など）
+const CLOSER_LINE = /^\s*[)\]}]+;?\s*$/;
 const CLOSE_SET = new Set([')', ']', '}', '"', "'"]);
 
 // 表示する行の並び。typed: 書いた行（まだ書いていない行は undefined）、target: 比べるお手本の行
@@ -58,24 +59,36 @@ export function wrongAt(typed, target, j) {
   return typed[j] !== body[j - indent];
 }
 
-// カーソルのすぐ後ろにある、自動で入れた閉じかっこ・閉じ引用符は、まだ「書いていない」ものとして比べない
+// 自動で入れた閉じかっこは、まだ「書いていない」ものとして比べない。
+// - カーソルと同じ行で、カーソルより後ろにある閉じかっこ・閉じ引用符（col から先）
+// - カーソルより下にあって、文書の終わりまで閉じかっこだけの行が続く部分（tail から先の行）
 const CLOSERS_ONLY = /^[)\]}"']+$/;
 export function pendingFrom(value, caret) {
-  if (caret == null) return null;
+  const lines = value.split('\n');
+  if (caret == null) return { row: -1, col: 0, tail: lines.length };
   const before = value.slice(0, caret).split('\n');
   const row = before.length - 1;
-  const col = before[row].length;
-  const rest = value.split('\n')[row]?.slice(col) || '';
-  return CLOSERS_ONLY.test(rest) ? { row, col } : null;
+  const rest = (lines[row] || '').slice(before[row].length);
+  let tail = lines.length;
+  for (let k = lines.length - 1; k > row; k -= 1) {
+    if (CLOSER_LINE.test(lines[k]) || !lines[k].trim()) tail = k;
+    else break;
+  }
+  // 末尾の空行だけなら、まだ書いていない閉じかっこはない
+  if (lines.slice(tail).every((l) => !l.trim())) tail = lines.length;
+  return { row, col: CLOSERS_ONLY.test(rest) ? before[row].length : (lines[row] || '').length, tail };
 }
+
+// 比べる部分（カーソルより下の、自動で入れた閉じかっこの行を除いたもの）
+const headOf = (value, pending) => value.split('\n').slice(0, pending.tail).join('\n');
 
 export function compareLines(model, value, caret) {
   let ok = 0;
   let bad = 0;
   const pending = pendingFrom(value, caret);
-  alignLines(model, value).forEach(({ typed, target }, i) => {
+  alignLines(model, headOf(value, pending)).forEach(({ typed, target }, i) => {
     if (typed === undefined) return;
-    const end = pending && pending.row === i ? pending.col : typed.length;
+    const end = pending.row === i ? Math.min(pending.col, typed.length) : typed.length;
     for (let j = leadingSpaces(typed).length; j < end; j += 1) {
       if (wrongAt(typed, target, j)) bad += 1;
       else ok += 1;
@@ -102,8 +115,6 @@ const TraceEditor = forwardRef(function TraceEditor(
 ) {
   const want = useMemo(() => model.split('\n'), [model]);
   const got = value.split('\n');
-  const rows = useMemo(() => alignLines(model, value), [model, value]);
-  const lineCount = rows.length;
   const widthCh = Math.max(...want.map((l) => l.length), ...got.map((l) => l.length), 30) + 2;
   const showMarks = mode !== 'hidden';
   const areaRef = useRef(null);
@@ -119,6 +130,18 @@ const TraceEditor = forwardRef(function TraceEditor(
     return () => document.removeEventListener('selectionchange', onSel);
   }, []);
   const pending = pendingFrom(value, caret);
+  // 表示する行：書いた行（比べる部分）→ 自動で入れた閉じかっこの行 → お手本の残り
+  const rows = useMemo(() => {
+    const aligned = alignLines(model, headOf(value, pending));
+    const typedRows = aligned.filter((r) => r.typed !== undefined);
+    const restRows = aligned.filter((r) => r.typed === undefined);
+    const tailRows = value
+      .split('\n')
+      .slice(pending.tail)
+      .map((line) => ({ typed: line, target: null, pending: true }));
+    return [...typedRows, ...tailRows, ...restRows];
+  }, [model, value, pending.tail]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lineCount = rows.length;
   const colors = useMemo(() => tokenClasses(value, language), [value, language]);
   const lineStarts = useMemo(() => {
     const starts = [];
@@ -174,6 +197,24 @@ const TraceEditor = forwardRef(function TraceEditor(
         const r = autoIndent({ value, start: pos - 1, end: pos - 1, language });
         indent = leadingSpaces(r.value.slice(0, r.caret).split('\n').pop());
       }
+      // なぞり書きでは、次の行がお手本で閉じかっこだけの行（} など）なら、その行を自動で入れる
+      // （なぞり書きでは { を自動で閉じない。先に } を入れると、薄いお手本と行が重なってしまうため）
+      if (mode === 'ghost') {
+        const row = alignLines(model, next.slice(0, pos))[lineIndex];
+        const restOfLine = next.slice(pos).split('\n')[0];
+        if (row?.target && CLOSER_LINE.test(row.target) && !restOfLine.trim()) {
+          emit(`${next.slice(0, pos)}${row.target}${next.slice(pos)}`, pos + row.target.length);
+          return;
+        }
+      }
+      // { と } の間で改行したら、} は次の行に送る（見ながら・隠して）
+      const opener = next[pos - 2];
+      if (mode !== 'ghost' && PAIRS[opener] && opener !== '"' && opener !== "'" && next[pos] === PAIRS[opener]) {
+        const base = leadingSpaces(next.slice(0, pos - 1).split('\n').pop());
+        const inner = indent.length > base.length ? indent : `${base}    `;
+        emit(`${next.slice(0, pos)}${inner}\n${base}${next.slice(pos)}`, pos + inner.length);
+        return;
+      }
       emit(`${next.slice(0, pos)}${indent}${next.slice(pos)}`, pos + indent.length);
       return;
     }
@@ -188,7 +229,7 @@ const TraceEditor = forwardRef(function TraceEditor(
     }
 
     // 開く字を打ったら、閉じる字も一緒に入れて、カーソルは間に置く
-    if (ch && PAIRS[ch]) {
+    if (ch && PAIRS[ch] && !(ch === '{' && mode === 'ghost')) {
       const prev = next[pos - 2] || '';
       const quote = ch === '"' || ch === "'";
       if (!quote || !/[\w\\]/.test(prev)) {
@@ -234,7 +275,7 @@ const TraceEditor = forwardRef(function TraceEditor(
             aria-hidden
             className="trace-pre pointer-events-none absolute inset-0 whitespace-pre px-3 py-3 font-mono text-[13px] leading-6"
           >
-            {rows.map(({ typed: line, target }, i) => {
+            {rows.map(({ typed: line, target, pending: auto }, i) => {
               if (line === undefined) {
                 return (
                   <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/[0.18]">
@@ -252,7 +293,7 @@ const TraceEditor = forwardRef(function TraceEditor(
               return (
                 <div key={i} className="min-h-[1.5rem]">
                   {Array.from(line).map((ch, j) => {
-                    const wrong = !(pending && pending.row === i && j >= pending.col) && wrongAt(line, target, j);
+                    const wrong = !auto && !(pending.row === i && j >= pending.col) && wrongAt(line, target, j);
                     // 書いた字は種類ごとに色を付けて見せ、お手本と違うところには赤い下地を敷く
                     return (
                       <span
