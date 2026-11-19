@@ -643,6 +643,11 @@ export default function Trace() {
             {languageLabel(active.language)}・{active.completions || 0}回写した
           </p>
           <h1 className="mt-1 font-heading text-2xl">{active.title}</h1>
+          {active.source_problem_id && (
+            <Link to={`/solve/${active.source_problem_id}`} className="mt-1 inline-block text-[11.5px] text-primary hover:underline">
+              写し終えたら、もとの問題をもう一度解く →
+            </Link>
+          )}
           {active.summary && <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">{active.summary}</p>}
         </header>
         <div className="mt-5">
