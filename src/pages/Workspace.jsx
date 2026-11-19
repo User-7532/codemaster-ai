@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Send, Timer, Github, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, Timer, Github, ChevronDown, PenLine } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { LANGUAGES, getTemplate, fallbackTemplate } from '@/lib/languages';
@@ -33,6 +33,20 @@ export default function Workspace() {
   const [hintLoading, setHintLoading] = useState(false);
   const [grading, setGrading] = useState(false);
   const [gisting, setGisting] = useState(false);
+  const [tracing, setTracing] = useState(false);
+
+  // 解けないときは、この問題の解答を写経する場を作って、そちらへ移る
+  const traceThis = async () => {
+    setTracing(true);
+    try {
+      const res = await base44.functions.invoke('generateTrace', { problem_id: problem.id, language });
+      if (res.data?.error) throw new Error(res.data.error);
+      navigate(`/trace?id=${res.data.drill.id}`);
+    } catch (e) {
+      toast({ title: '写経の場を作れませんでした', description: e.message, variant: 'destructive' });
+      setTracing(false);
+    }
+  };
   const [result, setResult] = useState(null);
   const [mentorOpen, setMentorOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
@@ -287,6 +301,18 @@ export default function Workspace() {
                   次の問題へ
                 </Link>
               )
+            )}
+            {mode !== 'interview' && (
+              <button
+                type="button"
+                onClick={traceThis}
+                disabled={tracing || grading}
+                title="この問題の解答をお手本にして写経する"
+                className="flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-2 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-60"
+              >
+                {tracing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PenLine className="h-3.5 w-3.5" />}
+                {tracing ? 'お手本を作っています…' : 'わからないので写経する'}
+              </button>
             )}
             <span className="ml-auto text-[10px] text-muted-foreground/60">サーバーでは実行しません（AIがコードを読んで判定）</span>
           </div>
