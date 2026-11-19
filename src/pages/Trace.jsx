@@ -180,7 +180,11 @@ const readSpecView = () => {
 };
 
 function SpecPanel({ spec, loading, currentLine, code, language }) {
-  const { names, literals } = useMemo(() => matchNames(code, language), [code, language]);
+  // 合わせる必要があるのは「名前」だけ。型・戻り値・ポインタ渡しか値渡しかは学習者が自分で決めるので示さない。main はノイズなので除く。
+  const names = useMemo(() => {
+    const noise = new Set(["main"]);
+    return matchNames(code, language).names.filter((n) => !noise.has(n));
+  }, [code, language]);
   // 手順つき（ヒント多め）と、問題文だけ（何を作るかと、合わせる名前だけ）を切り替える
   const [view, setView] = useState(readSpecView);
   const choose = (v) => {
@@ -232,24 +236,11 @@ function SpecPanel({ spec, loading, currentLine, code, language }) {
           ))}
         </div>
       </div>
-      {spec.signatures?.length ? (
-        <div className="mt-2 space-y-0.5 rounded-lg bg-muted/40 px-2.5 py-2">
-          <p className="text-[10.5px] text-muted-foreground">名前・型はお手本と合わせます</p>
-          {spec.signatures.map((g, i) => (
-            <div key={i} className="flex flex-wrap items-baseline gap-x-2">
-              <span className="shrink-0 text-[11px] text-muted-foreground">{g.where}:</span>
-              <code className="font-mono text-[12px] text-foreground">{g.code}</code>
-            </div>
-          ))}
-        </div>
-      ) : names.length > 0 || literals.length > 0 ? (
+      {names.length > 0 ? (
         <div className="mt-2 flex flex-wrap items-center gap-1">
-          <span className="text-[11px] text-muted-foreground">使う名前（お手本と同じに）:</span>
+          <span className="text-[11px] text-muted-foreground">合わせる名前（型・戻り値は自分で）:</span>
           {names.map((n) => (
             <code key={n} className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">{n}</code>
-          ))}
-          {literals.map((l) => (
-            <code key={l} className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">{l}</code>
           ))}
         </div>
       ) : null}
