@@ -58,13 +58,27 @@ export default async function (req) {
     const language = LANG[body.language] ? body.language : 'python';
     const size = body.size === 'long' ? 'long' : 'short';
     const known = Array.isArray(body.done_titles) ? body.done_titles.map(String).slice(0, 20) : [];
-    if (!goal) return Response.json({ error: '身につけたいことを書いてください' }, { status: 400 });
+    // 添付したスクリーンショット（分からないことが書いてある画面など）。期限つきURLで受け取る
+    const imageUrls = (Array.isArray(body.image_urls) ? body.image_urls : [])
+      .map((u) => String(u || ''))
+      .filter((u) => /^https:\/\//.test(u))
+      .slice(0, 5);
+    if (!goal && !imageUrls.length) return Response.json({ error: '身につけたいことを書くか、スクリーンショットを添付してください' }, { status: 400 });
 
     const lines = size === 'long' ? '25〜45行' : '10〜25行';
 
     const prompt = `あなたはプログラミング初心者のための写経（お手本のコードを書き写して、手と目で型を覚える練習）の教材を作る先生です。
 
-【学習者が身につけたいこと】${goal}
+【学習者が身につけたいこと】${goal || '（文章での指定なし。添付した画像から読み取る）'}${
+      imageUrls.length
+        ? `
+【添付した画像】${imageUrls.length}枚。学習者が読んで分からなかったもの（教科書・解説・ほかのAIとの会話・エラー画面など）のスクリーンショット。
+- まず画像に何が書かれているかを読み取り、学習者が分からなかったと考えられる要点（使われている書き方・仕組み）を見極める。
+- その要点を、写経で手に覚えられるお手本にする。画像にコードがあれば、その書き方の型をなぞれるようにし、長すぎる・凝りすぎている部分は初心者向けに素直に書き直す。
+- 文章での指定もあるときは、文章を優先し、画像はその手がかりとして使う。
+- summary の1文目で、画像のどの部分を写経にしたかを短く書く。`
+        : ''
+    }
 【言語】${LANG[language]}
 【学習者】授業で少し習ったが、まだ自分では手が動かない初心者。写経から入りたい。
 【もう写経したもの（同じ内容は避ける）】${known.length ? known.join('、') : 'なし'}
@@ -93,6 +107,7 @@ export default async function (req) {
       prompt,
       response_json_schema: SCHEMA,
       model: 'gemini_3_1_pro',
+      ...(imageUrls.length ? { file_urls: imageUrls } : {}),
     });
 
     // コードのタブはスペースにそろえ、末尾の空白を落とす（写経で見えない違いを作らない）
@@ -106,9 +121,9 @@ export default async function (req) {
     const lineCount = code.split('\n').length;
 
     const drill = await base44.entities.TraceDrill.create({
-      goal,
+      goal: goal || `スクリーンショットから: ${String(out.title || '').slice(0, 40)}`,
       language,
-      title: String(out.title || goal).slice(0, 60),
+      title: String(out.title || goal || '写経').slice(0, 60),
       summary: String(out.summary || '').slice(0, 400),
       code,
       line_notes: (out.line_notes || [])

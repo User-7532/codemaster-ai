@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  ImagePlus,
   Loader2,
   MessageCircleQuestion,
   PenLine,
@@ -18,6 +19,8 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import TraceEditor, { compareLines, sameCode } from '@/components/trace/TraceEditor';
 import { LANGUAGES, languageLabel } from '@/lib/languages';
+import { MAX_IMAGES, imagesFromClipboard, signedUrls, useImageAttachments } from '@/lib/attachments';
+import { ImageStrip } from '@/components/assistant/ImageStrip';
 import { askAboutSelection } from '@/lib/selection-ask';
 import { addDaysISO, todayISO } from '@/lib/srs';
 import { cn } from '@/lib/utils';
@@ -581,6 +584,8 @@ export default function Trace() {
   const [language, setLanguage] = useState('python');
   const [size, setSize] = useState('short');
   const [busy, setBusy] = useState(false);
+  const att = useImageAttachments();
+  const fileRef = useRef(null);
 
   useEffect(() => {
     base44.entities.TraceDrill.list({ sort: '-created_date', limit: 100 })
@@ -596,12 +601,16 @@ export default function Trace() {
 
   const create = async (text = goal, opts = {}) => {
     const g = String(text).trim();
-    if (!g || busy) return;
+    // 画像を添えられるのは入力欄から作るときだけ（おすすめから作るときは使わない）
+    const withImages = !opts.from && !opts.noImages ? att.ready.map((x) => x.uri) : [];
+    if ((!g && !withImages.length) || busy || att.uploading) return;
     const lang = opts.language || language;
     setBusy(true);
     try {
+      const imageUrls = withImages.length ? await signedUrls(withImages) : [];
       const res = await base44.functions.invoke('generateTrace', {
         goal: g,
+        image_urls: imageUrls,
         language: lang,
         size: opts.size || size,
         done_titles: (drills || []).filter((d) => d.language === lang).map((d) => d.title),
@@ -614,6 +623,7 @@ export default function Trace() {
       }
       setDrills((prev) => [drill, ...(prev || [])]);
       setGoal('');
+      if (withImages.length) att.clear();
       setParams({ id: drill.id });
     } catch (e) {
       toast({ title: '写経の場を作れませんでした', description: e.message || 'もう一度お試しください。', variant: 'destructive' });
@@ -658,13 +668,41 @@ export default function Trace() {
         <textarea
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
+          onPaste={(e) => {
+            const files = imagesFromClipboard(e);
+            if (files.length) att.add(files);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) create();
           }}
           rows={2}
-          placeholder="例: Pythonで、リストの中から条件に合うものだけ集める書き方"
+          placeholder="例: Pythonで、リストの中から条件に合うものだけ集める書き方（スクショだけでも作れます）"
           className="mt-2 w-full resize-none rounded-lg border border-border/70 bg-background/70 px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-primary/50"
         />
+        <div className="mt-2">
+          <ImageStrip images={att.images} onRemove={att.remove} />
+          {att.error && <p className="mb-1.5 text-[10.5px] text-destructive">{att.error}</p>}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              att.add(e.target.files);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy || att.images.length >= MAX_IMAGES}
+            className="inline-flex items-center gap-1 rounded-full border border-border/70 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-40"
+          >
+            <ImagePlus className="h-3 w-3" />
+            スクショを添付（{MAX_IMAGES}枚まで・貼り付けも可）
+          </button>
+        </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {SUGGEST[language].map((s) => (
             <button
@@ -711,7 +749,7 @@ export default function Trace() {
           <button
             type="button"
             onClick={() => create()}
-            disabled={busy || !goal.trim()}
+            disabled={busy || att.uploading || (!goal.trim() && !att.ready.length)}
             className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-[12.5px] font-medium text-primary-foreground disabled:opacity-40"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
