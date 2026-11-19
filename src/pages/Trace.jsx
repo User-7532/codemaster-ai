@@ -31,6 +31,7 @@ import {
 import { ImageStrip } from "@/components/assistant/ImageStrip";
 import { hasComments, stripDrill } from "@/lib/strip-comments";
 import { askAboutSelection } from "@/lib/selection-ask";
+import { matchNames } from "@/lib/highlight";
 import { addDaysISO, todayISO } from "@/lib/srs";
 import { cn } from "@/lib/utils";
 
@@ -178,7 +179,8 @@ const readSpecView = () => {
   }
 };
 
-function SpecPanel({ spec, loading, currentLine }) {
+function SpecPanel({ spec, loading, currentLine, code, language }) {
+  const { names, literals } = useMemo(() => matchNames(code, language), [code, language]);
   // 手順つき（ヒント多め）と、問題文だけ（何を作るかと、合わせる名前だけ）を切り替える
   const [view, setView] = useState(readSpecView);
   const choose = (v) => {
@@ -230,6 +232,17 @@ function SpecPanel({ spec, loading, currentLine }) {
           ))}
         </div>
       </div>
+      {(names.length > 0 || literals.length > 0) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <span className="text-[11px] text-muted-foreground">使う名前（お手本と同じに）:</span>
+          {names.map((n) => (
+            <code key={n} className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">{n}</code>
+          ))}
+          {literals.map((l) => (
+            <code key={l} className="rounded bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">{l}</code>
+          ))}
+        </div>
+      )}
       {showBrief ? (
         <p className="mt-2 text-[12.5px] leading-relaxed">
           <SpecText text={spec.brief} />
@@ -572,7 +585,7 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
         />
       </div>
 
-      <SpecPanel spec={spec} loading={specLoading} currentLine={currentLine} />
+      <SpecPanel spec={spec} loading={specLoading} currentLine={currentLine} code={drill.code} language={drill.language} />
 
       {/* お手本：見ながらモードと、のぞいている間は上に出す。ほかのモードでも開ける */}
       {modelVisible && (
