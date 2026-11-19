@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils';
 
 const leadingSpaces = (line) => (line.match(/^[ \t]*/) || [''])[0];
 const isBlank = (s) => !s || !s.trim();
-const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+// 写経では { は自動で閉じない。} は何行も先に来るので、先に入れると行の対応がずれてお手本が乱れるため
+const PAIRS = { '(': ')', '[': ']', '"': '"', "'": "'" };
 const CLOSE_SET = new Set([')', ']', '}', '"', "'"]);
 
 // 表示する行の並び。typed: 書いた行（まだ書いていない行は undefined）、target: 比べるお手本の行
