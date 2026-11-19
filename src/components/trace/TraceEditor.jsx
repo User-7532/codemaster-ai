@@ -207,19 +207,6 @@ const TraceEditor = forwardRef(function TraceEditor(
 
     if (ch === '\n') {
       const lineIndex = next.slice(0, pos).split('\n').length - 1;
-      // なぞり書きで、まだ何も書いていない行で改行しても、お手本にない空行は作らない
-      // （空行を足すたびに薄いお手本が1行ずつ下へ逃げていくため）
-      if (mode === 'ghost') {
-        const prevLine = next.slice(0, pos - 1).split('\n').pop();
-        if (!prevLine.trim()) {
-          const here = alignLines(model, value.slice(0, pos - 1))[lineIndex - 1];
-          if (here && ((here.target && here.target.trim()) || (here.idx ?? 0) >= want.length)) {
-            el.value = value;
-            el.selectionStart = el.selectionEnd = pos - 1;
-            return;
-          }
-        }
-      }
       let indent;
       if (autoIndentFromModel && mode !== 'hidden') {
         // 次の行の字下げはお手本どおりに入れる（字下げの打ち込みで時間を使わない）
