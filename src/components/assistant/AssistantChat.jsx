@@ -46,6 +46,8 @@ export default function AssistantChat() {
   const [messages, setMessages] = useState(null);
   const [busy, setBusy] = useState(false);
   const [quote, setQuote] = useState('');
+  // コードの入力欄で選んだときの、周りのコード（AIにだけ渡す）
+  const [quoteContext, setQuoteContext] = useState('');
   const [importing, setImporting] = useState(false);
   const { pathname } = useLocation();
   const { toast } = useToast();
@@ -81,8 +83,9 @@ export default function AssistantChat() {
   // 画面で選んだ文章を受け取り、引用つきの質問として開く
   useEffect(
     () =>
-      onAskSelection((text) => {
+      onAskSelection((text, context) => {
         setQuote(text);
+        setQuoteContext(context);
         setOpen(true);
       }),
     []
@@ -108,7 +111,7 @@ export default function AssistantChat() {
         quote: currentQuote,
         page: pageLabelOf(pathname),
         path: pathname,
-        context: visibleContext(),
+        context: quoteContext && currentQuote ? `${quoteContext.slice(0, 1300)}\n\n【画面の内容】\n${visibleContext()}` : visibleContext(),
       });
       if (res.data?.error) throw new Error(res.data.error);
       setMessages((prev) => [...(prev || []), { id: `a-${Date.now()}`, role: 'assistant', content: res.data.reply }]);
