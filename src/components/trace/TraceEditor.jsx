@@ -136,12 +136,12 @@ const TraceEditor = forwardRef(function TraceEditor(
     const aligned = alignLines(model, headOf(value, pending));
     const typedRows = aligned.filter((r) => r.typed !== undefined);
     const restRows = aligned.filter((r) => r.typed === undefined);
-    // カーソルより下の空行には、お手本の続きを重ねて見せる（空行の分だけお手本が下へずれないように）
+    // カーソルより下の空行や自動で入れた } の行には、お手本の続きを重ねて見せる（その分だけお手本が下へずれないように。} とお手本が重なるのは見逃す）
     const rest = [...restRows];
     const tailRows = value
       .split('\n')
       .slice(pending.tail)
-      .map((line) => (!line.trim() && rest.length ? { typed: line, target: rest.shift().target, pending: true } : { typed: line, target: null, pending: true }));
+      .map((line) => ({ typed: line, target: rest.length ? rest.shift().target : null, pending: true }));
     return [...typedRows, ...tailRows, ...rest];
   }, [model, value, pending.tail]); // eslint-disable-line react-hooks/exhaustive-deps
   const lineCount = rows.length;
@@ -216,8 +216,15 @@ const TraceEditor = forwardRef(function TraceEditor(
         const r = autoIndent({ value, start: pos - 1, end: pos - 1, language });
         indent = leadingSpaces(r.value.slice(0, r.caret).split('\n').pop());
       }
-      // なぞり書きでは、次の行がお手本で閉じかっこだけの行（} など）なら、その行を自動で入れる
-      // （なぞり書きでは { を自動で閉じない。先に } を入れると、薄いお手本と行が重なってしまうため）
+      // { と } の間で改行したら、} は次の行に送る（ふつうのエディタと同じ。中身を書く間、} は下へ押し出されていく）
+      const opener = next[pos - 2];
+      if (PAIRS[opener] && opener !== '"' && opener !== "'" && next[pos] === PAIRS[opener]) {
+        const base = leadingSpaces(next.slice(0, pos - 1).split('\n').pop());
+        const inner = indent.length > base.length ? indent : `${base}    `;
+        emit(`${next.slice(0, pos)}${inner}\n${base}${next.slice(pos)}`, pos + inner.length);
+        return;
+      }
+      // なぞり書きで、次の行がお手本で閉じかっこだけの行（} など）なら、下にある } へ進む（なければその行を入れる）
       if (mode === 'ghost') {
         const row = alignLines(model, next.slice(0, pos))[lineIndex];
         const restOfLine = next.slice(pos).split('\n')[0];
@@ -236,14 +243,6 @@ const TraceEditor = forwardRef(function TraceEditor(
           emit(`${next.slice(0, pos)}${row.target}${next.slice(pos)}`, pos + row.target.length);
           return;
         }
-      }
-      // { と } の間で改行したら、} は次の行に送る（見ながら・隠して）
-      const opener = next[pos - 2];
-      if (mode !== 'ghost' && PAIRS[opener] && opener !== '"' && opener !== "'" && next[pos] === PAIRS[opener]) {
-        const base = leadingSpaces(next.slice(0, pos - 1).split('\n').pop());
-        const inner = indent.length > base.length ? indent : `${base}    `;
-        emit(`${next.slice(0, pos)}${inner}\n${base}${next.slice(pos)}`, pos + inner.length);
-        return;
       }
       emit(`${next.slice(0, pos)}${indent}${next.slice(pos)}`, pos + indent.length);
       return;
@@ -294,7 +293,7 @@ const TraceEditor = forwardRef(function TraceEditor(
     }
 
     // 開く字を打ったら、閉じる字も一緒に入れて、カーソルは間に置く
-    if (ch && PAIRS[ch] && !(ch === '{' && mode === 'ghost')) {
+    if (ch && PAIRS[ch]) {
       const prev = next[pos - 2] || '';
       const quote = ch === '"' || ch === "'";
       if (!quote || !/[\w\\]/.test(prev)) {
@@ -353,6 +352,29 @@ const TraceEditor = forwardRef(function TraceEditor(
                 return (
                   <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/[0.18]">
                     {mode === 'ghost' && target ? target : ' '}
+                  </div>
+                );
+              }
+              // 自動で入れた } の行：} を色つきで見せ、それ以外の位置にはお手本を薄く重ねる
+              if (auto) {
+                const width = Math.max(line.length, mode === 'ghost' && target ? target.length : 0);
+                return (
+                  <div key={i} className="min-h-[1.5rem]">
+                    {Array.from({ length: width }, (_, j) => {
+                      const c = line[j];
+                      if (c && c !== ' ') {
+                        return (
+                          <span key={j} className={composing ? 'text-transparent' : colors[lineStarts[i] + j] || 'text-[#ece3d6]'}>
+                            {c}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span key={j} className="text-[#ece3d6]/[0.18]">
+                          {mode === 'ghost' && target ? target[j] || ' ' : c || ' '}
+                        </span>
+                      );
+                    })}
                   </div>
                 );
               }
