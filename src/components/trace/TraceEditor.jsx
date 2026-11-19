@@ -20,6 +20,53 @@ const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
 const CLOSER_LINE = /^\s*[)\]}]+;?\s*$/;
 const CLOSE_SET = new Set([')', ']', '}', '"', "'"]);
 
+// 先頭の #include / #define / #pragma / using / import などは、並び順を変えても結果が変わらない。
+// この「前文ブロック」だけは順序違いを見逃す（お手本を、書いた順に合わせて並べ替えてから比べる）。
+// 中身の行や、#ifndef などの条件コンパイルは対象外（順序に意味があるため）。
+const PREAMBLE_RE = /^\s*(#\s*(include|import|define|pragma)\b|using\s|import\s|from\s+\S+\s+import\b|package\s|#!)/;
+const isPreamble = (l) => PREAMBLE_RE.test(l);
+// 先頭から続く前文ブロックの終わり（空行はまたぐ）。前文が無ければ 0。
+const preambleEnd = (lines) => {
+  let seen = false;
+  let end = 0;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (isBlank(lines[i])) continue;
+    if (isPreamble(lines[i])) {
+      seen = true;
+      end = i + 1;
+    } else break;
+  }
+  return seen ? end : 0;
+};
+// お手本の先頭前文ブロックを、書いた前文の順に並べ替える（空行の位置は保つ）。
+function alignPreamble(model, value) {
+  const mLines = model.split('\n');
+  const mEnd = preambleEnd(mLines);
+  if (mEnd === 0) return model;
+  const vLines = value.split('\n');
+  const vEnd = preambleEnd(vLines);
+  const modelPre = [];
+  for (let i = 0; i < mEnd; i += 1) if (!isBlank(mLines[i])) modelPre.push(mLines[i]);
+  const used = new Array(modelPre.length).fill(false);
+  const ordered = [];
+  for (let i = 0; i < vEnd; i += 1) {
+    if (isBlank(vLines[i])) continue;
+    const t = vLines[i].trim();
+    const k = modelPre.findIndex((m, idx) => !used[idx] && m.trim() === t);
+    if (k >= 0) {
+      used[k] = true;
+      ordered.push(modelPre[k]);
+    }
+  }
+  modelPre.forEach((m, idx) => {
+    if (!used[idx]) ordered.push(m);
+  });
+  const out = mLines.slice();
+  let p = 0;
+  for (let i = 0; i < mEnd; i += 1) if (!isBlank(mLines[i])) { out[i] = ordered[p]; p += 1; }
+  return out.join('\n');
+}
+
 // 表示する行の並び。typed: 書いた行（まだ書いていない行は undefined）、target: 比べるお手本の行
 export function alignLines(model, value) {
   const want = model.split('\n');
@@ -85,7 +132,7 @@ export function compareLines(model, value, caret) {
   let ok = 0;
   let bad = 0;
   const pending = pendingFrom(value, caret);
-  alignLines(model, headOf(value, pending)).forEach(({ typed, target }, i) => {
+  alignLines(alignPreamble(model, value), headOf(value, pending)).forEach(({ typed, target }, i) => {
     if (typed === undefined) return;
     const end = pending.row === i ? Math.min(pending.col, typed.length) : typed.length;
     for (let j = leadingSpaces(typed).length; j < end; j += 1) {
@@ -97,15 +144,19 @@ export function compareLines(model, value, caret) {
   return { ok, bad, total, progress: Math.min(1, ok / total) };
 }
 
-// 空行・行頭と行末の空白の違いは無視して、完全に写せたかを見る
+// 空行・行頭と行末の空白の違いは無視して、完全に写せたかを見る。
+// 先頭の前文ブロック（#include / #define など）は並び順の違いも無視する。
 export const sameCode = (a, b) => {
-  const norm = (s) =>
-    s
+  const canon = (s) => {
+    const lines = s
       .split('\n')
       .map((l) => l.trim())
-      .filter(Boolean)
-      .join('\n');
-  return norm(a) === norm(b);
+      .filter(Boolean);
+    let e = 0;
+    while (e < lines.length && isPreamble(lines[e])) e += 1;
+    return [...lines.slice(0, e).sort(), ...lines.slice(e)].join('\n');
+  };
+  return canon(a) === canon(b);
 };
 
 const TraceEditor = forwardRef(function TraceEditor(
@@ -133,7 +184,7 @@ const TraceEditor = forwardRef(function TraceEditor(
   const pending = pendingFrom(value, caret);
   // 表示する行：書いた行（比べる部分）→ 自動で入れた閉じかっこの行 → お手本の残り
   const rows = useMemo(() => {
-    const aligned = alignLines(model, headOf(value, pending));
+    const aligned = alignLines(alignPreamble(model, value), headOf(value, pending));
     const typedRows = aligned.filter((r) => r.typed !== undefined);
     const restRows = aligned.filter((r) => r.typed === undefined);
     // カーソルより下の空行や自動で入れた } の行には、お手本の続きを重ねて見せる（その分だけお手本が下へずれないように。} とお手本が重なるのは見逃す）
