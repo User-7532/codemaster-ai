@@ -62,7 +62,7 @@ export function wrongAt(typed, target, j) {
 
 // 自動で入れた閉じかっこは、まだ「書いていない」ものとして比べない。
 // - カーソルと同じ行で、カーソルより後ろにある閉じかっこ・閉じ引用符（col から先）
-// - カーソルより下にあって、文書の終わりまで閉じかっこだけの行が続く部分（tail から先の行）
+// - カーソルより下にあって、文書の終わりまで閉じかっこだけの行・空行が続く部分（tail から先の行）
 const CLOSERS_ONLY = /^[)\]}"']+$/;
 export function pendingFrom(value, caret) {
   const lines = value.split('\n');
@@ -75,8 +75,6 @@ export function pendingFrom(value, caret) {
     if (CLOSER_LINE.test(lines[k]) || !lines[k].trim()) tail = k;
     else break;
   }
-  // 末尾の空行だけなら、まだ書いていない閉じかっこはない
-  if (lines.slice(tail).every((l) => !l.trim())) tail = lines.length;
   return { row, col: CLOSERS_ONLY.test(rest) ? before[row].length : (lines[row] || '').length, tail };
 }
 
@@ -138,11 +136,13 @@ const TraceEditor = forwardRef(function TraceEditor(
     const aligned = alignLines(model, headOf(value, pending));
     const typedRows = aligned.filter((r) => r.typed !== undefined);
     const restRows = aligned.filter((r) => r.typed === undefined);
+    // カーソルより下の空行には、お手本の続きを重ねて見せる（空行の分だけお手本が下へずれないように）
+    const rest = [...restRows];
     const tailRows = value
       .split('\n')
       .slice(pending.tail)
-      .map((line) => ({ typed: line, target: null, pending: true }));
-    return [...typedRows, ...tailRows, ...restRows];
+      .map((line) => (!line.trim() && rest.length ? { typed: line, target: rest.shift().target, pending: true } : { typed: line, target: null, pending: true }));
+    return [...typedRows, ...tailRows, ...rest];
   }, [model, value, pending.tail]); // eslint-disable-line react-hooks/exhaustive-deps
   const lineCount = rows.length;
   const colors = useMemo(() => tokenClasses(value, language), [value, language]);
