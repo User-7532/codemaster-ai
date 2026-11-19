@@ -235,6 +235,16 @@ const TraceEditor = forwardRef(function TraceEditor(
         const row = alignLines(model, next.slice(0, pos))[lineIndex];
         const restOfLine = next.slice(pos).split('\n')[0];
         if (row?.target && CLOSER_LINE.test(row.target) && !restOfLine.trim()) {
+          // その閉じかっこの行がもう下にあれば（あいだは空行だけ）、新しく行を作らずにそこへ進む
+          const below = value.slice(pos - 1).split('\n');
+          const k = below.findIndex((l, idx) => idx > 0 && l.trim());
+          if (k > 0 && below[k].trim() === row.target.trim()) {
+            const target = pos - 1 + below.slice(0, k + 1).join('\n').length;
+            el.value = value;
+            el.selectionStart = el.selectionEnd = target;
+            setCaret(target);
+            return;
+          }
           pendingAuto.current = pos;
           emit(`${next.slice(0, pos)}${row.target}${next.slice(pos)}`, pos + row.target.length);
           return;
@@ -258,12 +268,24 @@ const TraceEditor = forwardRef(function TraceEditor(
       const before = next.slice(lineStart, pos - 1);
       const after = next.slice(pos, lineEnd);
       // 自分で } を打った行のすぐ下に、自動で入れた } の行があれば、そちらを使う（} が二重にならないように）
+      // （あいだに空行があっても、下で最初に出てくる字のある行が、その閉じかっこの行なら使う）
       if (!before.trim() && !after.trim() && lineEnd < next.length) {
-        const nextLineEnd = next.indexOf('\n', lineEnd + 1) === -1 ? next.length : next.indexOf('\n', lineEnd + 1);
-        const nextLine = next.slice(lineEnd + 1, nextLineEnd);
-        if (CLOSER_LINE.test(nextLine) && nextLine.trim()[0] === ch) {
+        let at = lineEnd + 1;
+        let found = null;
+        while (at <= next.length) {
+          const end = next.indexOf('\n', at) === -1 ? next.length : next.indexOf('\n', at);
+          const line = next.slice(at, end);
+          if (line.trim()) {
+            found = { start: at, line };
+            break;
+          }
+          if (end >= next.length) break;
+          at = end + 1;
+        }
+        if (found && CLOSER_LINE.test(found.line) && found.line.trim()[0] === ch) {
           const merged = next.slice(0, lineStart) + next.slice(lineEnd + 1);
-          emit(merged, lineStart + leadingSpaces(nextLine).length + 1);
+          const removed = lineEnd + 1 - lineStart;
+          emit(merged, found.start - removed + leadingSpaces(found.line).length + 1);
           return;
         }
       }
@@ -336,6 +358,14 @@ const TraceEditor = forwardRef(function TraceEditor(
                 return (
                   <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/[0.18]">
                     {mode === 'ghost' ? target || ' ' : ' '}
+                  </div>
+                );
+              }
+              // まだ空白しかない行は、空白の数によらず、お手本の行をそのままの位置に薄く見せる
+              if (!line.trim()) {
+                return (
+                  <div key={i} className="min-h-[1.5rem] text-[#ece3d6]/[0.18]">
+                    {mode === 'ghost' && target ? target : ' '}
                   </div>
                 );
               }
