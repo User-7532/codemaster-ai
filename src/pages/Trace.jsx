@@ -100,12 +100,13 @@ function SpecText({ text }) {
     );
 }
 
-const SPEC_VIEW_KEY = 'codemaster-trace-spec-view';
+const SPEC_VIEW_KEY = 'codemaster-trace-spec-view-v2';
 const readSpecView = () => {
   try {
-    return localStorage.getItem(SPEC_VIEW_KEY) === 'brief' ? 'brief' : 'steps';
+    // 何も選んでいなければ「問題文だけ」
+    return localStorage.getItem(SPEC_VIEW_KEY) === 'steps' ? 'steps' : 'brief';
   } catch {
-    return 'steps';
+    return 'brief';
   }
 };
 
