@@ -181,6 +181,9 @@ const TraceEditor = forwardRef(function TraceEditor(
     const el = e.target;
     const next = el.value;
     const pos = el.selectionStart;
+    // 直前の打鍵で閉じかっこの行を自動で入れたか（その直後の1打鍵だけ使う）
+    const autoLine = pendingAuto.current;
+    pendingAuto.current = null;
     if (composing) {
       onChange(next, pos);
       return;
@@ -238,10 +241,9 @@ const TraceEditor = forwardRef(function TraceEditor(
         }
       }
       // 自動で入れた閉じかっこの行のすぐ後ろで同じ字を打ったら、足さない（なぞり書きで } を自動で入れたあとの癖の打鍵）
-      if (!after.trim() && CLOSER_LINE.test(before) && before.trim().endsWith(ch) && pendingAuto.current === lineStart) {
+      if (!after.trim() && CLOSER_LINE.test(before) && before.trim().endsWith(ch) && autoLine === lineStart) {
         el.value = value;
         el.selectionStart = el.selectionEnd = pos - 1;
-        pendingAuto.current = null;
         return;
       }
     }
