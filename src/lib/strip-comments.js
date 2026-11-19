@@ -80,14 +80,22 @@ export function stripComments(source, language) {
     compact.push(l);
     shift[k + 1] = compact.length;
   });
+  // 先頭と末尾の空行は落とす（先頭を落とした分だけ行番号をずらす）
+  let lead = 0;
+  while (lead < compact.length && !compact[lead].trim()) lead += 1;
+  let end = compact.length;
+  while (end > lead && !compact[end - 1].trim()) end -= 1;
   Object.entries(lineMap).forEach(([orig, mid]) => {
-    finalMap[orig] = mid == null ? null : shift[mid] ?? null;
+    const n = mid == null ? null : shift[mid] ?? null;
+    finalMap[orig] = n == null || n <= lead || n > end ? null : n - lead;
   });
-  const code = compact.join('\n').replace(/^\n+|\n+$/g, '');
+  const code = compact.slice(lead, end).join('\n');
   return { code, lineMap: finalMap };
 }
 
-export const hasComments = (source, language) => stripComments(source, language).code !== String(source || '').replace(/^\n+|\n+$/g, '');
+// コメントがあるか（あれば写経のデータを直す）
+export const hasComments = (source, language) =>
+  stripComments(source, language).code !== String(source || '').split('\n').map((l) => l.replace(/\s+$/, '')).join('\n').replace(/^\n+|\n+$/g, '');
 
 // 写経のデータを、コメントなしのお手本に合わせて直す（行ごとの解説の行番号も付け替える。問題文は作り直す）
 export function stripDrill(drill) {
