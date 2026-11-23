@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { addDaysISO, todayISO } from '@/lib/srs';
+import { questionPreview } from '@/lib/answer-guard';
 
 // 1日に出す復習の上限。溜まった分は、この数を超えないように先の日へならしていく
 const LIMIT_KEY = 'codemaster-review-limit';
@@ -95,32 +96,68 @@ export function levelBacklog(items, limit = readLimit()) {
   return running;
 }
 
-// 会話の取り込みで、解く前から復習に入っていたもの（一度も解いていない）を外す。1回だけ行う
-const CLEANUP_KEY = 'codemaster-import-review-cleanup-v1';
-export async function removeUnansweredImports(items) {
+// 知識カードを「翌日から」忘却曲線に乗せる。すでに復習予定があるカードには作らない（重複防止）。
+// 取り込んだ瞬間に予定を作るので、「取り込んだが復習に出ず眠ったまま」を防ぐ。
+export async function scheduleCardsNextDay(cards) {
+  const list = (cards || []).filter((c) => c && c.id);
+  if (!list.length) return 0;
+  const ids = list.map((c) => c.id);
+  let have = new Set();
   try {
-    if (localStorage.getItem(CLEANUP_KEY)) return items;
+    const existing = await base44.entities.ReviewItem.filter(
+      { item_type: 'knowledge', item_id: { $in: ids } },
+      { limit: 500 }
+    );
+    have = new Set((existing.items || []).map((i) => i.item_id));
   } catch {
-    return items;
+    // 照合できなくても、下の作成でできるだけ付ける
   }
-  const targets = (items || []).filter((i) => !i.last_result && !i.streak && !i.interval_days);
-  for (let i = 0; i < targets.length; i += 10) {
-    await Promise.all(targets.slice(i, i + 10).map((t) => base44.entities.ReviewItem.delete(t.id).catch(() => {})));
+  const due = addDaysISO(1);
+  const records = list
+    .filter((c) => !have.has(c.id))
+    .map((c) => ({
+      item_type: 'knowledge',
+      item_id: c.id,
+      title: questionPreview(c, 40) || '知識カード',
+      topic: c.domain || '',
+      due_date: due,
+      interval_days: 1,
+      streak: 0,
+    }));
+  for (let i = 0; i < records.length; i += 100) {
+    await base44.entities.ReviewItem.bulkCreate(records.slice(i, i + 100)).catch(() => {});
+  }
+  return records.length;
+}
+
+// すでに取り込んであるのに復習予定が無い知識カード（source='chat'）を、一度だけ翌日予定に拾い上げる。
+const BACKFILL_KEY = 'codemaster-import-backfill-v1';
+export async function backfillImportedCards() {
+  try {
+    if (localStorage.getItem(BACKFILL_KEY)) return;
+  } catch {
+    return;
   }
   try {
-    localStorage.setItem(CLEANUP_KEY, '1');
+    const page = await base44.entities.KnowledgeCard.filter({ source: 'chat' }, { sort: '-created_date', limit: 500 });
+    const cards = page.items || [];
+    if (cards.length) await scheduleCardsNextDay(cards);
+    try {
+      localStorage.setItem(BACKFILL_KEY, '1');
+    } catch {
+      // 立てられなくても、次回また拾い上げを試みるだけ
+    }
   } catch {
-    // 次回もう一度試みるだけ
+    // 失敗したらキーを立てず、次回に回す
   }
-  const gone = new Set(targets.map((t) => t.id));
-  return (items || []).filter((i) => !gone.has(i.id));
 }
 
 // 復習の一覧を読み込み、片付けとならしを済ませたものを返す
 export async function loadReviewItems() {
+  // 眠っている取り込み済みカードを、一度だけ翌日予定に拾い上げる
+  await backfillImportedCards().catch(() => {});
   const page = await base44.entities.ReviewItem.list({ sort: 'due_date', limit: 500 });
-  let items = page.items || [];
-  items = await removeUnansweredImports(items);
+  const items = page.items || [];
   const leveled = await levelBacklog(items).catch(() => null);
   return leveled || items;
 }
