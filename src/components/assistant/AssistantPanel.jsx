@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, ClipboardPaste, GripHorizontal, Loader2, Quote, Search, Send, X } from 'lucide-react';
+import { BookmarkPlus, ImagePlus, ClipboardPaste, GripHorizontal, Loader2, Quote, Search, Send, X } from 'lucide-react';
 import { IMPORT_MAX, IMPORT_MIN } from '@/lib/external-import';
 import MessageSearch from '@/components/assistant/MessageSearch';
 import { ImageStrip, MessageImages } from '@/components/assistant/ImageStrip';
@@ -21,6 +21,8 @@ export default function AssistantPanel({
   onSend,
   onImport,
   importing = false,
+  onImportReply,
+  importingId = null,
   onClose,
   onLoadFrom,
   quote = '',
@@ -167,13 +169,16 @@ export default function AssistantPanel({
             質問でも、相談でも、そのまま書いてください。
           </p>
         ) : (
-          messages.map((m) => (
+          messages.map((m) => {
+            const canImportThis =
+              m.role !== 'user' && !!onImportReply && !!m.content && !String(m.content).startsWith('取り込みました');
+            return (
             <div
               key={m.id}
               ref={(el) => {
                 msgRefs.current[m.id] = el;
               }}
-              className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
+              className={m.role === 'user' ? 'flex justify-end' : 'flex flex-col items-start'}
             >
               <div
                 className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
@@ -192,8 +197,25 @@ export default function AssistantPanel({
                 )}
                 {m.content}
               </div>
+              {canImportThis && (
+                <button
+                  type="button"
+                  onClick={() => onImportReply(m)}
+                  disabled={importingId != null}
+                  className="mt-1 flex items-center gap-1 pl-1 text-[10px] text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
+                  title="この返信から知識カードを作って、明日の復習に入れます"
+                >
+                  {importingId === m.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <BookmarkPlus className="h-3 w-3" />
+                  )}
+                  {importingId === m.id ? '取り込み中…' : '知識に取り込む'}
+                </button>
+              )}
             </div>
-          ))
+            );
+          })
         )}
         {busy && (
           <div className="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
