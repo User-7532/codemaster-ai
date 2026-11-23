@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import AssistantPanel from '@/components/assistant/AssistantPanel';
 import useDragPosition from '@/hooks/use-drag-position';
 import { onAskSelection } from '@/lib/selection-ask';
-import { importExternal, importReport } from '@/lib/external-import';
+import { importExternal, importKnowledge, importReport } from '@/lib/external-import';
 import { signedUrls } from '@/lib/attachments';
 
 const PAGE_LABEL = {
@@ -49,6 +49,8 @@ export default function AssistantChat() {
   // コードの入力欄で選んだときの、周りのコード（AIにだけ渡す）
   const [quoteContext, setQuoteContext] = useState('');
   const [importing, setImporting] = useState(false);
+  // いま知識に取り込んでいる返信のID（ボタンにくるくるを出す）
+  const [importingId, setImportingId] = useState(null);
   const { pathname } = useLocation();
   const { toast } = useToast();
   const drag = useDragPosition();
@@ -150,6 +152,23 @@ export default function AssistantChat() {
     }
   };
 
+  // アシスタントの返信ひとつを、その場で知識カードにする（明日の復習に入る）
+  const importReply = async (m) => {
+    if (!m?.content || importingId) return;
+    setImportingId(m.id);
+    try {
+      const { cards } = await importKnowledge(m.content, []);
+      toast({
+        title: cards.length ? `知識に取り込みました（${cards.length}問）` : '取り込める知識が見つかりませんでした',
+        description: cards.length ? '明日の復習から出てきます。' : '別の返信で試してみてください。',
+      });
+    } catch (e) {
+      toast({ title: '取り込めませんでした', description: e.message, variant: 'destructive' });
+    } finally {
+      setImportingId(null);
+    }
+  };
+
   return (
     <div className="pointer-events-none fixed bottom-24 right-3 z-50 flex flex-col items-end gap-2 lg:bottom-6 lg:right-6">
       {open && (
@@ -164,6 +183,8 @@ export default function AssistantChat() {
             onSend={send}
             onImport={runImport}
             importing={importing}
+            onImportReply={importReply}
+            importingId={importingId}
             onClose={() => setOpen(false)}
             onLoadFrom={loadFrom}
             quote={quote}
