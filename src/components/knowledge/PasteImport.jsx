@@ -57,7 +57,7 @@ export default function PasteImport({ onCards }) {
       {open && (
         <div className="mt-2 rounded-xl border border-border/60 bg-card/50 p-3">
           <p className="text-[10px] leading-relaxed text-muted-foreground">
-            ほかのAIとのやり取りをそのまま貼り付けてください。やり取りの中の知識を、抜けが出ないように順に問題にします。コードの話題があればコーディング問題も作り、どちらも今日の復習に入れます。会話の要点はAIアシスタントが覚えます。
+            ほかのAIとのやり取りをそのまま貼り付けてください。やり取りの中の知識を、抜けが出ないように順に問題にします。コードの話題があればコーディング問題も作ります。知識は明日の復習に入り、コードの問題は解くと復習に入ります。会話の要点はAIアシスタントが覚えます。
           </p>
           <textarea
             value={text}
