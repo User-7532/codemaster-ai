@@ -8,6 +8,7 @@ import VerdictBadge from '@/components/VerdictBadge';
 
 const LIMITS = [25, 40, 60];
 const LEVELS = [
+  { id: 'basic', label: '初級' },
   { id: 'intermediate', label: '中級' },
   { id: 'advanced', label: '上級' },
 ];
@@ -37,7 +38,7 @@ export default function Interview() {
         source: 'interview',
       });
       if (res.data?.error) throw new Error(res.data.error);
-      navigate(`/solve/${res.data.problem.id}?mode=interview&limit=${minutes}`);
+      navigate(`/solve/${res.data.problem.id}?mode=interview&limit=${minutes}&lang=${language}`);
     } catch (e) {
       toast({ title: '面接を始められませんでした', description: e.message, variant: 'destructive' });
       setBusy(false);
@@ -72,7 +73,7 @@ export default function Interview() {
 
           <div>
             <p className="text-xs text-muted-foreground">レベル</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {LEVELS.map((l) => (
                 <button
                   key={l.id}
