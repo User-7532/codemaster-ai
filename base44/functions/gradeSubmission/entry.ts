@@ -31,6 +31,30 @@ const GRADE_SCHEMA = {
   required: ['verdict', 'score', 'test_results', 'time_complexity', 'issues', 'explanation'],
 };
 
+// 「AIが実行結果を予想する」モードの返し値。実行はしないのですべて予想。
+const PREDICT_SCHEMA = {
+  type: 'object',
+  properties: {
+    predictions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          input: { type: 'string' },
+          output: { type: 'string' },
+          matches_expected: { type: 'boolean' },
+          note: { type: 'string' },
+        },
+        required: ['input', 'output', 'matches_expected', 'note'],
+      },
+    },
+    time_complexity: { type: 'string' },
+    space_complexity: { type: 'string' },
+    limit_note: { type: 'string' },
+  },
+  required: ['predictions', 'time_complexity', 'space_complexity', 'limit_note'],
+};
+
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -48,6 +72,50 @@ export default async function (req) {
       e.status === 404 ? null : Promise.reject(e)
     );
     if (!problem) return Response.json({ error: 'Problem not found' }, { status: 404 });
+
+    // 「AIが実行結果を予想」モード：実際には動かさず、サンプル入力ごとの標準出力をAIが推定して返す。
+    // 採点（Submission作成）はしない。結果はあくまで予想。
+    if (body.action === 'predict') {
+      const sample = (problem.test_cases || []).slice(0, 8);
+      if (sample.length === 0) {
+        return Response.json({ predictions: [], time_complexity: '', space_complexity: '', limit_note: 'サンプル入出力がありません。' });
+      }
+      const inputs = sample
+        .map((t, i) => `${i + 1}. 入力: ${t.input ?? '-'} / （参考）期待: ${t.expected ?? '-'}`)
+        .join('\n');
+      const predictPrompt = `あなたはコードの動きを頭の中で追う採点補助です。次のコードを実際には実行せず、各サンプル入力に対する標準出力を推定してください。
+
+【言語】${LANG_LABEL[language] || 'C++'}
+【問題】${problem.title}
+${problem.statement}
+【制約】${problem.constraints || '特になし'}
+【メモリ上限】512MB ／【実行タイムアウト】2000ms ／【想定の計算量】${problem.expected_complexity || '指定なし'}
+
+【サンプル入力（と参考の期待出力）】
+${inputs}
+
+【コード】
+\`\`\`${LANG_FENCE[language] || 'cpp'}
+${code}
+\`\`\`
+
+ルール:
+- コードを実行せず、1件ずつ手で追って output（標準出力）を予想する。output は実際に出るであろう文字列をそのまま（改行や空白も含めて）書く。コンパイル/実行時エラーになりそうなら output にそのエラーの要約を書き matches_expected を false にする。
+- matches_expected は、予想した output が参考の期待出力と一致するかどうか。
+- time_complexity / space_complexity は O(...) 形式。
+- limit_note: 上のメモリ上限・実行タイムアウト・想定計算量に照らして、制約に引っかかりそうかを1～2文で。実測ではなく予想である旨も添える。日本語で。`;
+
+      const pred = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: predictPrompt,
+        response_json_schema: PREDICT_SCHEMA,
+      });
+      return Response.json({
+        predictions: (pred.predictions || []).slice(0, 8),
+        time_complexity: pred.time_complexity || '',
+        space_complexity: pred.space_complexity || '',
+        limit_note: pred.limit_note || '',
+      });
+    }
 
     const cases = (problem.test_cases || [])
       .map((t, i) => `${i + 1}. 入力: ${t.input || '-'} / 期待する出力: ${t.expected || '-'}${t.note ? ` (${t.note})` : ''}`)
