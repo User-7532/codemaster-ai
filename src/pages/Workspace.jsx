@@ -86,6 +86,13 @@ export default function Workspace() {
     }
     setGrading(true);
     try {
+      // 模擬面接は、まず本物に実行して全テストケースの合否を出し、それを採点に渡す（AIは講評役）
+      let execution = null;
+      if (mode === 'interview' && (problem.test_cases || []).length) {
+        const runRes = await base44.functions.invoke('runCode', { language, code, cases: problem.test_cases || [] });
+        if (runRes.data?.error) throw new Error(runRes.data.error);
+        execution = runRes.data;
+      }
       const res = await base44.functions.invoke('gradeSubmission', {
         problem_id: problem.id,
         language,
@@ -93,6 +100,7 @@ export default function Workspace() {
         duration_seconds: duration(),
         code,
         explanation,
+        execution,
       });
       if (res.data?.error) throw new Error(res.data.error);
       const r = res.data.result;
