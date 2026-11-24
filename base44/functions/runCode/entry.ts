@@ -8,11 +8,14 @@ const COMPILERS = {
   python: 'cpython-3.13.18',
 };
 
-async function runOne(compiler, code, stdin) {
+async function runOne(compiler, code, stdin, files) {
+  const codes = (Array.isArray(files) ? files : [])
+    .filter((f) => f && f.name && typeof f.content === 'string')
+    .map((f) => ({ file: String(f.name).slice(0, 80), code: String(f.content) }));
   const res = await fetch('https://wandbox.org/api/compile.json', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ compiler, code, stdin: stdin == null ? '' : String(stdin) }),
+    body: JSON.stringify({ compiler, code, stdin: stdin == null ? '' : String(stdin), ...(codes.length ? { codes } : {}) }),
   });
   if (!res.ok) throw new Error(`Wandbox ${res.status}`);
   return await res.json();
@@ -29,7 +32,7 @@ const normOut = (s) =>
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { language = 'cpp', code = '', cases = [] } = body;
+    const { language = 'cpp', code = '', cases = [], files = [] } = body;
 
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
@@ -46,7 +49,7 @@ export default async function (req) {
     for (const c of list) {
       let r;
       try {
-        r = await runOne(compiler, code, c?.input ?? '');
+        r = await runOne(compiler, code, c?.input ?? '', files);
       } catch (e) {
         results.push({
           input: c?.input ?? '',
