@@ -12,8 +12,6 @@ export default function WrittenCard({ card, onResult, onSkip }) {
   const [error, setError] = useState('');
   // 一度でも間違えたか（再挑戦で正解しても、復習では不正解扱いにして早めに出す）
   const [everWrong, setEverWrong] = useState(false);
-  // 不正解のとき、模範解答を見るか（再挑戦を意味あるものにするため、既定では伏せる）
-  const [revealed, setRevealed] = useState(false);
   const speech = useSpeechInput({ onText: (t) => setDraft((d) => d + t) });
 
   const judge = async () => {
@@ -37,14 +35,12 @@ export default function WrittenCard({ card, onResult, onSkip }) {
     }
   };
 
-  // 不正解でもう一度：下書きは残したまま入力に戻す
+  // 不正解でもう一度：模範解答を見たうえで、それを隠して自分の頭で思い出して答え直す（下書きも消す）
   const retry = () => {
+    setDraft('');
     setVerdict(null);
-    setRevealed(false);
     setError('');
   };
-  // 模範解答を出す条件：正解したとき、または不正解で「答えを見る」を押したとき
-  const showAnswer = verdict && (verdict.correct || revealed);
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/50 p-5">
@@ -82,7 +78,6 @@ export default function WrittenCard({ card, onResult, onSkip }) {
             <p className="text-[10.5px] text-muted-foreground/80">（前に間違えたので、復習でまた出します）</p>
           )}
           <p className="text-[11.5px] leading-relaxed text-foreground/80">{verdict.feedback}</p>
-          {showAnswer && (
           <div className="rounded-lg bg-secondary/40 px-3 py-2.5">
             {card.expected_points?.length > 0 && (
               <div className="mb-2.5">
@@ -105,22 +100,22 @@ export default function WrittenCard({ card, onResult, onSkip }) {
               <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground/80">{card.explanation}</p>
             )}
           </div>
-          )}
-          {!verdict.correct && !revealed ? (
+          {!verdict.correct ? (
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={retry}
+                title="模範解答を隠して、自分の頭で思い出しながら答え直します"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
-                <RotateCcw className="h-3.5 w-3.5" /> もう一度答える
+                <RotateCcw className="h-3.5 w-3.5" /> 隠してもう一度
               </button>
               <button
                 type="button"
-                onClick={() => setRevealed(true)}
+                onClick={() => onResult(false)}
                 className="rounded-lg border border-border/70 px-3 py-2.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
               >
-                答えを見る
+                次へ
               </button>
             </div>
           ) : (
