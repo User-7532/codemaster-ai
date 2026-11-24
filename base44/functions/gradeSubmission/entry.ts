@@ -5,6 +5,7 @@ const MAX_CODE = 20000;
 const LANG_LABEL = { python: 'Python', c: 'C', cpp: 'C++' };
 const LANG_FENCE = { python: 'python', c: 'c', cpp: 'cpp' };
 
+// 従来どおり、AIがコードを読んで合否まで判定するときのスキーマ（実行結果が無いとき用）
 const GRADE_SCHEMA = {
   type: 'object',
   properties: {
@@ -31,34 +32,23 @@ const GRADE_SCHEMA = {
   required: ['verdict', 'score', 'test_results', 'time_complexity', 'issues', 'explanation'],
 };
 
-// 「AIが実行結果を予想する」モードの返し値。実行はしないのですべて予想。
-const PREDICT_SCHEMA = {
+// 本物の実行で合否が出ているときは、AIは講評だけ返す
+const FEEDBACK_SCHEMA = {
   type: 'object',
   properties: {
-    predictions: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          input: { type: 'string' },
-          output: { type: 'string' },
-          matches_expected: { type: 'boolean' },
-          note: { type: 'string' },
-        },
-        required: ['input', 'output', 'matches_expected', 'note'],
-      },
-    },
     time_complexity: { type: 'string' },
     space_complexity: { type: 'string' },
-    limit_note: { type: 'string' },
+    issues: { type: 'array', items: { type: 'string' } },
+    explanation: { type: 'string' },
+    interview_feedback: { type: 'string' },
   },
-  required: ['predictions', 'time_complexity', 'space_complexity', 'limit_note'],
+  required: ['time_complexity', 'issues', 'explanation'],
 };
 
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { problem_id, language = 'cpp', mode = 'practice', duration_seconds = 0, code = '' } = body;
+    const { problem_id, language = 'cpp', mode = 'practice', duration_seconds = 0, code = '', execution = null } = body;
 
     if (!problem_id) return Response.json({ error: 'problem_id is required' }, { status: 400 });
     if (typeof code !== 'string' || !code.trim()) return Response.json({ error: 'コードが空です' }, { status: 400 });
@@ -73,60 +63,83 @@ export default async function (req) {
     );
     if (!problem) return Response.json({ error: 'Problem not found' }, { status: 404 });
 
-    // 「AIが実行結果を予想」モード：実際には動かさず、サンプル入力ごとの標準出力をAIが推定して返す。
-    // 採点（Submission作成）はしない。結果はあくまで予想。
-    if (body.action === 'predict') {
-      const sample = (problem.test_cases || []).slice(0, 8);
-      if (sample.length === 0) {
-        return Response.json({ predictions: [], time_complexity: '', space_complexity: '', limit_note: 'サンプル入出力がありません。' });
-      }
-      const inputs = sample
-        .map((t, i) => `${i + 1}. 入力: ${t.input ?? '-'} / （参考）期待: ${t.expected ?? '-'}`)
-        .join('\n');
-      const predictPrompt = `あなたはコードの動きを頭の中で追う採点補助です。次のコードを実際には実行せず、各サンプル入力に対する標準出力を推定してください。
+    const interviewBlock =
+      mode === 'interview'
+        ? 'interview_feedback には面接官の立場で「考え方の筋道」「説明の仕方」「時間配分」を200字程度で書く。'
+        : 'interview_feedback は空文字にする。';
 
-【言語】${LANG_LABEL[language] || 'C++'}
+    let out;
+
+    if (execution && Array.isArray(execution.results)) {
+      // 本物の実行結果で合否を決める。AIは講評だけ（再判定はさせない）。
+      const results = execution.results;
+      const graded = results.filter((r) => r.passed === true || r.passed === false);
+      const passed = typeof execution.passed === 'number' ? execution.passed : graded.filter((r) => r.passed).length;
+      const total = typeof execution.total === 'number' ? execution.total : graded.length;
+      const anyCompileErr = results.some((r) => r.compile_error);
+      const verdict = total > 0 && passed === total ? 'correct' : passed > 0 ? 'partial' : 'wrong';
+      const score = total > 0 ? Math.round((passed / total) * 100) : 0;
+      const test_results = results.map((r) => ({
+        case: `入力 ${String(r.input ?? '').slice(0, 40) || '(なし)'}`,
+        passed: r.passed === true,
+        reason: r.compile_error
+          ? 'コンパイルエラー'
+          : r.passed === false
+            ? `出力が違います（出力: ${String(r.stdout ?? '').replace(/\n/g, '⏎').slice(0, 40)}）`
+            : r.passed === true
+              ? '通過'
+              : '期待出力なし',
+      }));
+      const runSummary = results
+        .map(
+          (r, i) =>
+            `#${i + 1} 入力:${String(r.input ?? '').slice(0, 60)} 期待:${String(r.expected ?? '').slice(0, 60)} 実際:${String(r.stdout ?? '').slice(0, 60)} ${r.compile_error ? `[コンパイルエラー:${String(r.compile_error).slice(0, 140)}]` : ''} => ${r.passed ? 'OK' : 'NG'}`
+        )
+        .join('\n');
+
+      const fbPrompt = `次のコードは実際に実行済みで、テスト結果は下のとおりです（${passed}/${total} 通過）。合否は確定しているので再判定はせず、講評だけ返してください。
+
 【問題】${problem.title}
 ${problem.statement}
-【制約】${problem.constraints || '特になし'}
-【メモリ上限】512MB ／【実行タイムアウト】2000ms ／【想定の計算量】${problem.expected_complexity || '指定なし'}
+【言語】${LANG_LABEL[language] || 'C++'}
+【想定の計算量】${problem.expected_complexity || '指定なし'}
 
-【サンプル入力（と参考の期待出力）】
-${inputs}
+【実行結果】
+${runSummary}
 
 【コード】
 \`\`\`${LANG_FENCE[language] || 'cpp'}
 ${code}
 \`\`\`
 
-ルール:
-- コードを実行せず、1件ずつ手で追って output（標準出力）を予想する。output は実際に出るであろう文字列をそのまま（改行や空白も含めて）書く。コンパイル/実行時エラーになりそうなら output にそのエラーの要約を書き matches_expected を false にする。
-- matches_expected は、予想した output が参考の期待出力と一致するかどうか。
-- time_complexity / space_complexity は O(...) 形式。
-- limit_note: 上のメモリ上限・実行タイムアウト・想定計算量に照らして、制約に引っかかりそうかを1～2文で。実測ではなく予想である旨も添える。日本語で。`;
+- time_complexity / space_complexity は O(...) 形式で、このコードの見積もりを書く。
+- issues は直すと良い点を最大4つ、短い日本語で。コンパイルエラーがあれば、その原因を1つ目に書く。
+- explanation は200字程度の日本語で、何が良く何が足りないかを書く。専門用語は正確な標準用語で、比喩や曖昧な言い換えはしない。
+- ${interviewBlock}`;
 
-      const pred = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: predictPrompt,
-        response_json_schema: PREDICT_SCHEMA,
+      const fb = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: fbPrompt,
+        response_json_schema: FEEDBACK_SCHEMA,
       });
-      return Response.json({
-        predictions: (pred.predictions || []).slice(0, 8),
-        time_complexity: pred.time_complexity || '',
-        space_complexity: pred.space_complexity || '',
-        limit_note: pred.limit_note || '',
-      });
-    }
 
-    const cases = (problem.test_cases || [])
-      .map((t, i) => `${i + 1}. 入力: ${t.input || '-'} / 期待する出力: ${t.expected || '-'}${t.note ? ` (${t.note})` : ''}`)
-      .join('\n') || '(指定なし。問題文から妥当なケースを3つ考えて検証)';
+      out = {
+        verdict,
+        score,
+        test_results,
+        time_complexity: fb.time_complexity || '',
+        space_complexity: fb.space_complexity || '',
+        issues: fb.issues || [],
+        explanation: fb.explanation || '',
+        interview_feedback: fb.interview_feedback || '',
+      };
+    } else {
+      // 実行結果が無いときは、従来どおりAIがコードを読んで判定する。
+      const cases =
+        (problem.test_cases || [])
+          .map((t, i) => `${i + 1}. 入力: ${t.input || '-'} / 期待する出力: ${t.expected || '-'}${t.note ? ` (${t.note})` : ''}`)
+          .join('\n') || '(指定なし。問題文から妥当なケースを3つ考えて検証)';
 
-    const interviewBlock =
-      mode === 'interview'
-        ? 'interview_feedback には面接官の立場で「考え方の筋道」「説明の仕方」「時間配分」を200字程度で書く。'
-        : 'interview_feedback は空文字にする。';
-
-    const prompt = `あなたは技術面接の採点官です。次の提出コードを読み、実際には実行せず、頭の中でテストケースを1件ずつ追いかけて判定してください。
+      const prompt = `あなたは技術面接の採点官です。次の提出コードを読み、実際には実行せず、頭の中でテストケースを1件ずつ追いかけて判定してください。
 
 【問題】
 ${problem.title}
@@ -149,7 +162,7 @@ ${code}
 判定のルール:
 - コードは実行しない。上のテストケースを順に手で追い、各ケースの出力を予想して合否を出す。
 - コンパイルエラーや未定義動作になりそうな箇所があれば、その時点で wrong とし、理由を書く。
-- 全ケース通過なら correct、考え方は合っているが一部ケースで落ちるなら partial、的根本的に誤りなら wrong。
+- 全ケース通過なら correct、考え方は合っているが一部ケースで落ちるなら partial、根本的に誤りなら wrong。
 - score は 0〜100 の整数。
 - time_complexity と space_complexity は O(...) の形で書く。
 - issues は「直したほうがいい点」を最大4つ、短い日本語で。
@@ -157,30 +170,42 @@ ${code}
 - explanation は 250字程度の日本語。専門用語は正確な標準用語で書き、比喩や曖昧な言い換え（「中身」「入れ物」など）はしない。難しい言い回しだけを避ける。
 - ${interviewBlock}`;
 
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt,
-      response_json_schema: GRADE_SCHEMA,
-    });
+      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: GRADE_SCHEMA,
+      });
+
+      out = {
+        verdict: result.verdict,
+        score: Math.max(0, Math.min(100, Math.round(Number(result.score) || 0))),
+        test_results: result.test_results || [],
+        time_complexity: result.time_complexity || '',
+        space_complexity: result.space_complexity || '',
+        issues: result.issues || [],
+        explanation: result.explanation || '',
+        interview_feedback: result.interview_feedback || '',
+      };
+    }
 
     const submission = await base44.entities.Submission.create({
       problem_id: problem.id,
       problem_title: problem.title,
       language,
       code,
-      verdict: result.verdict,
-      score: Math.max(0, Math.min(100, Math.round(Number(result.score) || 0))),
-      time_complexity: result.time_complexity || '',
-      space_complexity: result.space_complexity || '',
-      test_results: result.test_results || [],
-      issues: result.issues || [],
-      explanation: result.explanation || '',
-      interview_feedback: result.interview_feedback || '',
+      verdict: out.verdict,
+      score: out.score,
+      time_complexity: out.time_complexity,
+      space_complexity: out.space_complexity,
+      test_results: out.test_results,
+      issues: out.issues,
+      explanation: out.explanation,
+      interview_feedback: out.interview_feedback,
       topics: problem.topics || [],
       mode,
       duration_seconds: Number(duration_seconds) || 0,
     });
 
-    return Response.json({ result, submission });
+    return Response.json({ result: out, submission });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
