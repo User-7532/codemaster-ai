@@ -86,12 +86,16 @@ export default function Workspace() {
     }
     setGrading(true);
     try {
-      // 模擬面接は、まず本物に実行して全テストケースの合否を出し、それを採点に渡す（AIは講評役）
+      // テストのある問題は、どのモードでもまず本物に実行して合否を出し、それを採点に渡す（AIは講評役）。
+      // 実行できなければ従来のAI採点にフォールバックする。
       let execution = null;
-      if (mode === 'interview' && (problem.test_cases || []).length) {
-        const runRes = await base44.functions.invoke('runCode', { language, code, cases: problem.test_cases || [] });
-        if (runRes.data?.error) throw new Error(runRes.data.error);
-        execution = runRes.data;
+      if ((problem.test_cases || []).length) {
+        try {
+          const runRes = await base44.functions.invoke('runCode', { language, code, cases: problem.test_cases || [] });
+          if (!runRes.data?.error) execution = runRes.data;
+        } catch {
+          // 実行不可時はAI採点へ
+        }
       }
       const res = await base44.functions.invoke('gradeSubmission', {
         problem_id: problem.id,
@@ -349,7 +353,7 @@ export default function Workspace() {
                 {tracing ? 'お手本を作っています…' : 'わからないので写経する'}
               </button>
             )}
-            <span className="ml-auto text-[10px] text-muted-foreground/60">サーバーでは実行しません（AIがコードを読んで判定）</span>
+            <span className="ml-auto text-[10px] text-muted-foreground/60">提出すると、テストのある問題は実際に実行して採点します（Wandbox）</span>
           </div>
 
           <HintBox hints={hints} loading={hintLoading} onReveal={revealHint} disabled={grading} />
