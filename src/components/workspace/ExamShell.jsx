@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, MessageSquarePlus, PenLine, Play, RotateCcw, Send, Timer, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -7,6 +7,8 @@ import { LANGUAGES } from '@/lib/languages';
 import CodeEditor from '@/components/CodeEditor';
 import GradeResult from '@/components/workspace/GradeResult';
 import MentorChat from '@/components/workspace/MentorChat';
+import FileTabs from '@/components/workspace/FileTabs';
+import SplitPane from '@/components/ui/SplitPane';
 
 const mmss = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 const DIFF = { basic: '基礎', intermediate: '中級', advanced: '上級' };
@@ -30,6 +32,8 @@ export default function ExamShell({
   onBack,
   explanation,
   onExplanation,
+  files = [],
+  onFiles,
 }) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -37,6 +41,34 @@ export default function ExamShell({
   const [mentorOpen, setMentorOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [run, setRun] = useState(null); // Wandboxで実際に実行した結果
+  const [active, setActive] = useState(0); // 開いているファイル（0=メイン）
+
+  // 複数ファイル：index 0 はメイン（code）、その先は追加ファイル（files）。
+  const extra = Array.isArray(files) ? files : [];
+  const EXT = { c: 'main.c', cpp: 'main.cpp', python: 'main.py' };
+  const entryName = EXT[language] || 'main.txt';
+  const tabNames = [entryName, ...extra.map((f) => f.name)];
+  const activeName = tabNames[Math.min(active, tabNames.length - 1)] || entryName;
+  const activeContent = active === 0 ? code : extra[active - 1]?.content ?? '';
+  const onEditorChange = (val) => {
+    if (active === 0) onCode(val);
+    else if (onFiles) onFiles(extra.map((f, i) => (i === active - 1 ? { ...f, content: val } : f)));
+  };
+  const addFile = () => {
+    const name = (typeof window !== 'undefined' ? window.prompt('ファイル名（例: util.c / helper.py）') : '') || '';
+    const nm = name.trim();
+    if (!nm || !onFiles) return;
+    onFiles([...extra, { name: nm.slice(0, 60), content: '' }]);
+    setActive(extra.length + 1);
+  };
+  const closeFile = (i) => {
+    if (i === 0 || !onFiles) return;
+    onFiles(extra.filter((_, idx) => idx !== i - 1));
+    setActive((a) => (a >= i ? Math.max(0, a - 1) : a));
+  };
+  useEffect(() => {
+    if (active > extra.length) setActive(0);
+  }, [extra.length, active]);
 
   const runSample = async () => {
     if (running || !code.trim()) return;
@@ -46,6 +78,7 @@ export default function ExamShell({
         language,
         code,
         cases: (problem.test_cases || []).slice(0, 8),
+        files: extra,
       });
       if (res.data?.error) throw new Error(res.data.error);
       setRun(res.data);
@@ -105,9 +138,13 @@ export default function ExamShell({
         </button>
       </div>
 
-      <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
-        {/* 左：上限バナー＋問題文（白パネル） */}
-        <aside className="overflow-hidden rounded-lg border border-slate-200 bg-white lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto">
+      <div className="p-3">
+        <SplitPane
+          storageKey="cm-exam-split"
+          min={300}
+          initial={460}
+          left={
+            <aside className="overflow-hidden rounded-lg border border-slate-200 bg-white lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto">
           <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-[11px] text-amber-700">
             メモリ上限(MB): 512 ／ 実行タイムアウト(ms): 2000{timed ? ` ／ 制限時間 ${limit}分` : ''}
           </div>
@@ -162,10 +199,10 @@ export default function ExamShell({
               </p>
             )}
           </div>
-        </aside>
-
-        {/* 右：言語タブ＋エディタ＋テスト出力 */}
-        <section className="min-w-0 space-y-3">
+            </aside>
+          }
+          right={
+            <section className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {LANGUAGES.map((l) => (
               <button
@@ -183,7 +220,8 @@ export default function ExamShell({
             ))}
           </div>
 
-          <CodeEditor value={code} onChange={onCode} language={language} />
+          <FileTabs tabs={tabNames} active={active} onSelect={setActive} onAdd={addFile} onClose={closeFile} />
+          <CodeEditor value={activeContent} onChange={onEditorChange} language={language} filename={activeName} />
 
           {/* テスト出力（実行はしないので、サンプル入出力と注意書き） */}
           <div className="overflow-hidden rounded-lg border border-[#2b241c] bg-[#14110d]">
@@ -305,7 +343,9 @@ export default function ExamShell({
               )}
             </>
           )}
-        </section>
+            </section>
+          }
+        />
       </div>
 
       {/* コードの説明（方針を言葉にする）スライドパネル */}
