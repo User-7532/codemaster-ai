@@ -26,6 +26,17 @@ const PY_KEYWORDS = [
 ];
 
 const build = (language) => {
+  if (language === 'html') {
+    // HTML: タグを kw、属性名を fn、文字列を str、コメントを com、DOCTYPE を meta にする
+    return new RegExp(
+      `(?<com><!--[\\s\\S]*?-->)` +
+        `|(?<meta><!DOCTYPE[^>]*>)` +
+        `|(?<str>"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*')` +
+        `|(?<kw></?[A-Za-z][\\w:-]*|/?>)` +
+        `|(?<fn>[A-Za-z_:][\\w:-]*(?==))`,
+      'g'
+    );
+  }
   const kw = (language === 'python' ? PY_KEYWORDS : language === 'c' ? C_KEYWORDS : CPP_KEYWORDS).join('|');
   if (language === 'python') {
     return new RegExp(
