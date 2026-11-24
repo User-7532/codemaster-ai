@@ -23,6 +23,8 @@ export default function Workspace() {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'practice';
   const limit = Number(searchParams.get('limit') || 0);
+  // 模擬面接の生成時に選んだ言語。面接画面で最初に選ばれている言語にする（切り替えは可能）
+  const langParam = searchParams.get('lang');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -39,6 +41,9 @@ export default function Workspace() {
   const [explanation, setExplanation] = useState('');
   // 模擬面接の追加ファイル（メイン以外。複数ファイルタブ用）
   const [files, setFiles] = useState([]);
+  // 言語ごとに「書いたコード・追加ファイル」を覚えておく入れ物（言語を切り替えても消えないように）
+  const langBuffers = useRef({});
+  const resultRef = useRef(null);
 
   // 解けないときは、この問題の解答を写経する場を作って、そちらへ移る
   const traceThis = async () => {
@@ -64,13 +69,17 @@ export default function Workspace() {
       .then((p) => {
         setProblem(p);
         const templates = p.templates || [];
-        const lang = ['cpp', 'c', 'python'].find((id) => templates.some((t) => t.language === id)) || 'cpp';
+        const valid = ['cpp', 'c', 'python'];
+        // 生成時に選んだ言語があればそれを初期選択にする。なければテンプレのある言語。
+        const lang = (langParam && valid.includes(langParam) && 'ok') ? langParam
+          : valid.find((id) => templates.some((t) => t.language === id)) || 'cpp';
+        langBuffers.current = {};
         setLanguage(lang);
         setCode(getTemplate(p, lang) || fallbackTemplate(lang));
         setFiles([]);
       })
       .catch(() => setLoadFailed(true));
-  }, [problemId]);
+  }, [problemId, langParam]);
 
   useEffect(() => {
     if (mode !== 'interview' || limit <= 0) return;
@@ -121,7 +130,7 @@ export default function Workspace() {
         topic: (problem.topics || [])[0] || '未分類',
         correct: r.verdict === 'correct',
       }).catch(() => {});
-      requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
+      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
     } catch (e) {
       toast({ title: '採点できませんでした', description: e.message, variant: 'destructive' });
     } finally {
@@ -178,14 +187,20 @@ export default function Workspace() {
     navigate('/review');
   };
 
+  // 言語を切り替えても、その言語で書いたコードと追加ファイルは言語ごとに覚えておき、
+  // 戻ってきたら元に戻す（例: C で書いて Python に移り、C に戻すと C の続きが残っている）。
   const switchLanguage = (next) => {
     if (next === language || !problem) return;
-    const currentTemplates = (problem.templates || []).map((t) => t.code);
-    const pristine = !code.trim() || currentTemplates.includes(code);
-    if (!pristine && !window.confirm('言語を切り替えるとコードは初期状態に戻ります。よろしいですか？')) return;
+    langBuffers.current[language] = { code, files };
+    const saved = langBuffers.current[next];
     setLanguage(next);
-    setCode(getTemplate(problem, next) || fallbackTemplate(next));
-    setFiles([]);
+    if (saved) {
+      setCode(saved.code);
+      setFiles(saved.files || []);
+    } else {
+      setCode(getTemplate(problem, next) || fallbackTemplate(next));
+      setFiles([]);
+    }
     setResult(null);
   };
 
