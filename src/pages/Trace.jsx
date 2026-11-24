@@ -21,6 +21,7 @@ import TraceEditor, {
   compareLines,
   sameCode,
 } from "@/components/trace/TraceEditor";
+import LivePreview from "@/components/trace/LivePreview";
 import { LANGUAGES, languageLabel } from "@/lib/languages";
 import {
   MAX_IMAGES,
@@ -513,6 +514,8 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
 
   // 写経の問題文（なにを作るか）。どのモードでも最初から出す
   useEffect(() => {
+    // HTML写経は問題文(spec)を使わない（見た目はライブ描画で分かる）
+    if (drill.language === "html") return;
     // 問題文はどのモードでも上に出す（何を作っているかを見失わないように）
     if ((spec?.steps?.length && spec?.brief) || specLoading) return;
     let cancelled = false;
@@ -602,6 +605,8 @@ function TraceSession({ drill, onUpdate, onStartNext }) {
         language={drill.language}
         onFirstKey={() => !startedAt && setStartedAt(Date.now())}
       />
+
+      {drill.language === "html" && <LivePreview value={value} model={drill.code} />}
 
       <div className="flex flex-wrap items-center gap-2">
         {mode === "hidden" ? (
@@ -954,7 +959,7 @@ export default function Trace() {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <div className="flex rounded-lg border border-border/70 p-0.5">
-            {LANGUAGES.map((l) => (
+            {[...LANGUAGES, { id: "html", label: "HTML" }].map((l) => (
               <button
                 key={l.id}
                 type="button"
