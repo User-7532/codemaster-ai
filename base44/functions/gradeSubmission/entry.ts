@@ -5,7 +5,6 @@ const MAX_CODE = 20000;
 const LANG_LABEL = { python: 'Python', c: 'C', cpp: 'C++' };
 const LANG_FENCE = { python: 'python', c: 'c', cpp: 'cpp' };
 
-// 従来どおり、AIがコードを読んで合否まで判定するときのスキーマ（実行結果が無いとき用）
 const GRADE_SCHEMA = {
   type: 'object',
   properties: {
@@ -32,7 +31,6 @@ const GRADE_SCHEMA = {
   required: ['verdict', 'score', 'test_results', 'time_complexity', 'issues', 'explanation'],
 };
 
-// 本物の実行で合否が出ているときは、AIは講評だけ返す
 const FEEDBACK_SCHEMA = {
   type: 'object',
   properties: {
@@ -71,12 +69,10 @@ export default async function (req) {
     let out;
 
     if (execution && Array.isArray(execution.results)) {
-      // 本物の実行結果で合否を決める。AIは講評だけ（再判定はさせない）。
       const results = execution.results;
       const graded = results.filter((r) => r.passed === true || r.passed === false);
       const passed = typeof execution.passed === 'number' ? execution.passed : graded.filter((r) => r.passed).length;
       const total = typeof execution.total === 'number' ? execution.total : graded.length;
-      const anyCompileErr = results.some((r) => r.compile_error);
       const verdict = total > 0 && passed === total ? 'correct' : passed > 0 ? 'partial' : 'wrong';
       const score = total > 0 ? Math.round((passed / total) * 100) : 0;
       const test_results = results.map((r) => ({
@@ -133,7 +129,6 @@ ${code}
         interview_feedback: fb.interview_feedback || '',
       };
     } else {
-      // 実行結果が無いときは、従来どおりAIがコードを読んで判定する。
       const cases =
         (problem.test_cases || [])
           .map((t, i) => `${i + 1}. 入力: ${t.input || '-'} / 期待する出力: ${t.expected || '-'}${t.note ? ` (${t.note})` : ''}`)
