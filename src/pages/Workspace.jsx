@@ -251,8 +251,8 @@ export default function Workspace() {
   const urgent = mode === 'interview' && remaining < 300;
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto flex h-full max-w-[1400px] flex-col px-4 pt-3 pb-3 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-center gap-3 shrink-0">
         <button
           type="button"
           onClick={() => navigate('/curriculum')}
@@ -286,12 +286,12 @@ export default function Workspace() {
         </button>
       </div>
 
-      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        <aside className="hidden rounded-xl border border-border/60 bg-card/60 p-5 lg:sticky lg:top-5 lg:block lg:max-h-[calc(100vh-40px)] lg:overflow-y-auto">
+      <div className="mt-3 grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-5 overflow-hidden lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
+        <aside className="hidden rounded-xl border border-border/60 bg-card/60 p-5 lg:block lg:overflow-y-auto">
           <ProblemBrief problem={problem} />
         </aside>
 
-        <section className="min-w-0 space-y-4">
+        <section className="min-w-0 space-y-4 overflow-y-auto pr-1 pb-24 lg:pb-2">
           <div className="rounded-xl border border-border/70 bg-card/70 lg:hidden">
             <button
               type="button"
@@ -381,7 +381,9 @@ export default function Workspace() {
 
           <HintChat problemId={problem.id} language={language} code={code} />
 
-          <GradeResult result={result} onOpenMentor={() => setMentorOpen(true)} />
+          <div ref={resultRef}>
+            <GradeResult result={result} onOpenMentor={() => setMentorOpen(true)} />
+          </div>
 
           {result && mentorOpen && (
             <MentorChat problemId={problem.id} lastResult={result} />
