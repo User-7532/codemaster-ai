@@ -844,14 +844,14 @@ export default function Trace() {
 
   if (active) {
     return (
-      <div className="mx-auto max-w-4xl px-5 pb-16 pt-2 sm:px-8">
+      <div className="mx-auto flex h-full max-w-4xl flex-col px-5 pt-2 sm:px-8">
         <Link
           to="/trace"
-          className="text-[11.5px] text-muted-foreground hover:text-foreground"
+          className="shrink-0 text-[11.5px] text-muted-foreground hover:text-foreground"
         >
           ← 写経の一覧
         </Link>
-        <header className="mt-3">
+        <header className="mt-3 shrink-0">
           <p className="text-[11px] text-muted-foreground">
             {languageLabel(active.language)}・{active.completions || 0}回写した
           </p>
@@ -870,7 +870,7 @@ export default function Trace() {
             </p>
           )}
         </header>
-        <div className="mt-5">
+        <div className="mt-5 min-h-0 flex-1 overflow-y-auto pb-24 pr-1 lg:pb-16">
           {needsClean ? (
             <div className="flex items-center gap-1.5 py-10 text-[12px] text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />{" "}
@@ -896,7 +896,7 @@ export default function Trace() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-5 pb-16 pt-2 sm:px-8">
+    <div className="mx-auto h-full max-w-4xl overflow-y-auto px-5 pb-24 pt-2 sm:px-8 lg:pb-16">
       <header>
         <h1 className="font-heading text-2xl">写経</h1>
       </header>
