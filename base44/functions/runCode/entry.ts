@@ -2,15 +2,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 
 const MAX_CODE = 20000;
 
-// 言語 → Wandbox のコンパイラ名。対応言語を増やすときは、まずここに1行足す。
-// （後々 HTML/XML/SQL など命令型以外を足すときは、別の実行方法が要るものもあるので、その言語だけ下の runOne を分岐する）
 const COMPILERS = {
   c: 'gcc-13.2.0-c',
   cpp: 'gcc-13.2.0',
   python: 'cpython-3.13.18',
 };
 
-// Wandbox で1回コンパイル＆実行する（標準入力つき）。実際にコードが動く。
 async function runOne(compiler, code, stdin) {
   const res = await fetch('https://wandbox.org/api/compile.json', {
     method: 'POST',
@@ -21,7 +18,6 @@ async function runOne(compiler, code, stdin) {
   return await res.json();
 }
 
-// 出力の比較用の正規化：改行コード・行末の空白・末尾の空行の違いは無視する。
 const normOut = (s) =>
   String(s ?? '')
     .replace(/\r\n/g, '\n')
