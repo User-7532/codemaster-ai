@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 
 // 写経の場を作る。身につけたいことから、短いお手本コード・行ごとの解説・写経のあとに解く練習問題をまとめて用意する
-const LANG = { python: 'Python', c: 'C', cpp: 'C++' };
+const LANG = { python: 'Python', c: 'C', cpp: 'C++', html: 'HTML' };
 
 const SCHEMA = {
   type: 'object',
@@ -42,6 +42,26 @@ const SCHEMA = {
   required: ['title', 'summary', 'code', 'line_notes', 'key_points', 'follow_up'],
 };
 
+// HTML写経用：解く練習問題(follow_up)は作らない。見た目はライブ描画で分かるので、お手本HTMLと解説だけ。
+const HTML_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    summary: { type: 'string' },
+    code: { type: 'string' },
+    line_notes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { line: { type: 'number' }, note: { type: 'string' } },
+        required: ['line', 'note'],
+      },
+    },
+    key_points: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['title', 'summary', 'code', 'line_notes', 'key_points'],
+};
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -74,7 +94,27 @@ export default async function (req) {
 
     const lines = size === 'long' ? '25〜45行' : '10〜25行';
 
-    const prompt = `あなたはプログラミング初心者のための写経（お手本のコードを書き写して、手と目で型を覚える練習）の教材を作る先生です。
+    const isHtml = language === 'html';
+    const htmlPrompt = `あなたはWeb制作初心者のための写経（お手本のHTMLを書き写して、手と目で型を覚える練習）の教材を作る先生です。
+
+【学習者が作りたい見た目・UI】${goal || '（文章での指定なし。添付画像から読み取る）'}${imageUrls.length ? `
+【添付画像】${imageUrls.length}枚。作りたいUIの見本や参考。この見た目に近づくHTMLをお手本にする。` : ''}
+【学習者】授業でHTMLを少し習ったが、まだ自分では手が動かない初心者。
+
+作るもの:
+1. code: 写経するお手本HTML（15〜35行）。
+- 1つのHTMLファイルで完結させる。<!DOCTYPE html> から始め、<html><head><style>…</style></head><body>…</body></html> の形にする。
+- CSSは <style> 内にまとめる。JavaScript（<script>）は使わない。外部ファイル・外部URL・画像リンクは使わない（色・グラデーション・絵文字で代用してよい）。
+- 素直で標準的な書き方にする。凝った技法や珍しいプロパティは避ける。
+- インデントはスペース2つ。コメント（<!-- -->）は入れない。表示する日本語はそのまま入れてよい。
+2. title: 15文字以内の見出し。
+3. summary: この写経で身につくこと（どんなUIか・使うタグやCSSの型）を2文で。
+4. line_notes: 大事な行（5〜10行）について、その行が何をしているか・なぜそう書くかを1〜2文で。line は code の1始まりの行番号で、必ずその行の内容に合わせる。
+5. key_points: 覚えておきたい型（使うタグやCSSの考え方）を3つ、各30文字以内。
+
+ルール: 技術用語は正確な標準用語を使い、比喩や曖昧な言い換えはしない。親しみやすく簡潔な日本語で。`;
+
+    const prompt = isHtml ? htmlPrompt : `あなたはプログラミング初心者のための写経（お手本のコードを書き写して、手と目で型を覚える練習）の教材を作る先生です。
 
 【学習者が身につけたいこと】${goal || (problem ? `次の問題の解き方` : '（文章での指定なし。添付した画像から読み取る）')}${
       problem
@@ -126,7 +166,7 @@ ${template ? `ひな形（関数の名前と引数はこれに合わせる）:\n
 
     const out = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
-      response_json_schema: SCHEMA,
+      response_json_schema: isHtml ? HTML_SCHEMA : SCHEMA,
       model: 'gemini_3_1_pro',
       ...(imageUrls.length ? { file_urls: imageUrls } : {}),
     });
