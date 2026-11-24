@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // 左右2つのパネルを、境界をドラッグして幅を変えられる分割ビュー。
 // 幅は localStorage に覚える。狭い画面（lg 未満）では縦に積む。
-export default function SplitPane({ left, right, storageKey = 'cm-split', min = 260, initial = 440 }) {
+export default function SplitPane({ left, right, storageKey = 'cm-split', min = 260, initial = 440, fill = false }) {
   const ref = useRef(null);
   const [isLg, setIsLg] = useState(false);
   const [w, setW] = useState(() => {
@@ -63,7 +63,7 @@ export default function SplitPane({ left, right, storageKey = 'cm-split', min = 
 
   if (!isLg) {
     return (
-      <div className="space-y-3">
+      <div className={fill ? 'flex h-full flex-col gap-3 overflow-y-auto' : 'space-y-3'}>
         {left}
         {right}
       </div>
@@ -71,8 +71,8 @@ export default function SplitPane({ left, right, storageKey = 'cm-split', min = 
   }
 
   return (
-    <div ref={ref} className="flex items-start">
-      <div style={{ width: w }} className="shrink-0">
+    <div ref={ref} className={fill ? 'flex h-full items-stretch' : 'flex items-start'}>
+      <div style={{ width: w }} className={fill ? 'h-full shrink-0 overflow-hidden' : 'shrink-0'}>
         {left}
       </div>
       <div
@@ -85,7 +85,7 @@ export default function SplitPane({ left, right, storageKey = 'cm-split', min = 
       >
         <div className="h-16 w-1 rounded-full bg-border transition-colors group-hover:bg-primary/60" />
       </div>
-      <div className="min-w-0 flex-1">{right}</div>
+      <div className={fill ? 'h-full min-w-0 flex-1 overflow-hidden' : 'min-w-0 flex-1'}>{right}</div>
     </div>
   );
 }
