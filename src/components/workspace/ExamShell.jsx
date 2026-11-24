@@ -35,25 +35,24 @@ export default function ExamShell({
   const { toast } = useToast();
   const [explOpen, setExplOpen] = useState(false);
   const [mentorOpen, setMentorOpen] = useState(false);
-  const [predicting, setPredicting] = useState(false);
-  const [pred, setPred] = useState(null); // AIが予想した実行結果（実測ではない）
+  const [running, setRunning] = useState(false);
+  const [run, setRun] = useState(null); // Wandboxで実際に実行した結果
 
-  const runPredict = async () => {
-    if (predicting || !code.trim()) return;
-    setPredicting(true);
+  const runSample = async () => {
+    if (running || !code.trim()) return;
+    setRunning(true);
     try {
-      const res = await base44.functions.invoke('gradeSubmission', {
-        problem_id: problem.id,
+      const res = await base44.functions.invoke('runCode', {
         language,
         code,
-        action: 'predict',
+        cases: (problem.test_cases || []).slice(0, 8),
       });
       if (res.data?.error) throw new Error(res.data.error);
-      setPred(res.data);
+      setRun(res.data);
     } catch (e) {
-      toast({ title: '予想できませんでした', description: e.message, variant: 'destructive' });
+      toast({ title: '実行できませんでした', description: e.message, variant: 'destructive' });
     } finally {
-      setPredicting(false);
+      setRunning(false);
     }
   };
   const timed = limit > 0;
@@ -193,37 +192,43 @@ export default function ExamShell({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={runPredict}
-                  disabled={predicting}
-                  title="コードは実行せず、AIが各サンプルの出力を予想して表示します（実測ではありません）"
+                  onClick={runSample}
+                  disabled={running}
+                  title="サンプル入力で実際にコードを実行します（Wandbox）"
                   className="flex items-center gap-1 rounded border border-[#2b241c] bg-[#201a13] px-2 py-0.5 text-[10px] text-[#c4b8a4] transition-colors hover:text-white disabled:opacity-60"
                 >
-                  {predicting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-                  {predicting ? '予想中…' : '実行（AI予想）'}
+                  {running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                  {running ? '実行中…' : 'サンプル実行'}
                 </button>
               </div>
             </div>
             <div className="max-h-56 overflow-y-auto px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-[#cbbfa9]">
-              {pred ? (
+              {run ? (
                 <div className="space-y-2">
-                  {(pred.predictions || []).map((p, i) => (
+                  {(run.results || []).map((r, i) => (
                     <div key={i}>
-                      <div className="text-[#8b7f6d]">&gt; 入力: {p.input || '(なし)'}</div>
-                      <div className={p.matches_expected ? 'text-[#b9d98f]' : 'text-[#e0a08a]'}>
-                        出力(予想): {p.output || '-'} {p.matches_expected ? '✓' : '✗'}
-                      </div>
-                      {p.note && <div className="text-[#6f6554]">{p.note}</div>}
+                      <div className="text-[#8b7f6d]">&gt; 入力: {r.input || '(なし)'}</div>
+                      {r.compile_error ? (
+                        <div className="whitespace-pre-wrap text-[#e0a08a]">コンパイルエラー: {String(r.compile_error).slice(0, 300)}</div>
+                      ) : r.error ? (
+                        <div className="text-[#e0a08a]">実行エラー: {String(r.error).slice(0, 200)}</div>
+                      ) : (
+                        <>
+                          <div className={r.passed === false ? 'text-[#e0a08a]' : 'text-[#b9d98f]'}>
+                            出力: {r.stdout || '(なし)'} {r.passed === true ? '✓' : r.passed === false ? '✗' : ''}
+                          </div>
+                          {r.passed === false && r.expected != null && (
+                            <div className="text-[#6f6554]">期待: {r.expected}</div>
+                          )}
+                          {r.stderr && <div className="text-[#e0a08a]">stderr: {String(r.stderr).slice(0, 200)}</div>}
+                        </>
+                      )}
                     </div>
                   ))}
-                  {(pred.time_complexity || pred.limit_note) && (
-                    <div className="mt-2 space-y-0.5 border-t border-[#2b241c] pt-2">
-                      {pred.time_complexity && (
-                        <div className="text-[#8b7f6d]">計算量(予想): 時間 {pred.time_complexity} / 空間 {pred.space_complexity || '-'}</div>
-                      )}
-                      {pred.limit_note && <div className="text-[#cbbfa9]">{pred.limit_note}</div>}
-                    </div>
+                  {run.total > 0 && (
+                    <div className="mt-2 border-t border-[#2b241c] pt-2 text-[#8b7f6d]">通過 {run.passed}/{run.total}</div>
                   )}
-                  <p className="mt-2 text-[10.5px] text-[#6f6554]">※ これはAIの予想で、実際に実行した結果ではありません。</p>
+                  <p className="mt-1 text-[10.5px] text-[#6f6554]">※ Wandboxで実際に実行した結果です。</p>
                 </div>
               ) : cases.length > 0 ? (
                 <div className="space-y-2">
@@ -233,7 +238,7 @@ export default function ExamShell({
                       <div className="text-[#b9d98f]">期待: {t.expected || '-'}</div>
                     </div>
                   ))}
-                  <p className="mt-2 text-[10.5px] text-[#6f6554]">「実行（AI予想）」で、AIが出力を予想します。提出で採点。</p>
+                  <p className="mt-2 text-[10.5px] text-[#6f6554]">「サンプル実行」で実際に動かして確認できます。提出で全テストを実行して採点。</p>
                 </div>
               ) : (
                 <p className="text-[#8b7f6d]">サンプル入出力は用意されていません。</p>
