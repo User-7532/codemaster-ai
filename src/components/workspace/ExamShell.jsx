@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, MessageSquarePlus, PenLine, RotateCcw, Send, Timer, X } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquarePlus, PenLine, Play, RotateCcw, Send, Timer, X } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { useToast } from '@/components/ui/use-toast';
 import { LANGUAGES } from '@/lib/languages';
 import CodeEditor from '@/components/CodeEditor';
 import GradeResult from '@/components/workspace/GradeResult';
@@ -30,8 +32,30 @@ export default function ExamShell({
   onExplanation,
 }) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [explOpen, setExplOpen] = useState(false);
   const [mentorOpen, setMentorOpen] = useState(false);
+  const [predicting, setPredicting] = useState(false);
+  const [pred, setPred] = useState(null); // AIが予想した実行結果（実測ではない）
+
+  const runPredict = async () => {
+    if (predicting || !code.trim()) return;
+    setPredicting(true);
+    try {
+      const res = await base44.functions.invoke('gradeSubmission', {
+        problem_id: problem.id,
+        language,
+        code,
+        action: 'predict',
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      setPred(res.data);
+    } catch (e) {
+      toast({ title: '予想できませんでした', description: e.message, variant: 'destructive' });
+    } finally {
+      setPredicting(false);
+    }
+  };
   const timed = limit > 0;
   const urgent = timed && remaining < 300;
   const poor = result && result.verdict !== 'correct';
@@ -167,22 +191,41 @@ export default function ExamShell({
             <div className="flex items-center justify-between border-b border-[#2b241c] px-3 py-1.5">
               <span className="rounded-t bg-[#201a13] px-2 py-0.5 font-mono text-[11px] text-[#c4b8a4]">テスト出力</span>
               <div className="flex items-center gap-1.5">
-                <span
-                  title="この環境ではコードを実行しません（提出でAIが判定）。実行はあとで対応予定。"
-                  className="cursor-not-allowed rounded border border-[#2b241c] px-2 py-0.5 text-[10px] text-[#6f6554]"
+                <button
+                  type="button"
+                  onClick={runPredict}
+                  disabled={predicting}
+                  title="コードは実行せず、AIが各サンプルの出力を予想して表示します（実測ではありません）"
+                  className="flex items-center gap-1 rounded border border-[#2b241c] bg-[#201a13] px-2 py-0.5 text-[10px] text-[#c4b8a4] transition-colors hover:text-white disabled:opacity-60"
                 >
-                  実行と保存
-                </span>
-                <span
-                  title="この環境ではコードを実行しません（提出でAIが判定）。実行はあとで対応予定。"
-                  className="cursor-not-allowed rounded border border-[#2b241c] px-2 py-0.5 text-[10px] text-[#6f6554]"
-                >
-                  デバッグ
-                </span>
+                  {predicting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                  {predicting ? '予想中…' : '実行（AI予想）'}
+                </button>
               </div>
             </div>
-            <div className="max-h-48 overflow-y-auto px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-[#cbbfa9]">
-              {cases.length > 0 ? (
+            <div className="max-h-56 overflow-y-auto px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-[#cbbfa9]">
+              {pred ? (
+                <div className="space-y-2">
+                  {(pred.predictions || []).map((p, i) => (
+                    <div key={i}>
+                      <div className="text-[#8b7f6d]">&gt; 入力: {p.input || '(なし)'}</div>
+                      <div className={p.matches_expected ? 'text-[#b9d98f]' : 'text-[#e0a08a]'}>
+                        出力(予想): {p.output || '-'} {p.matches_expected ? '✓' : '✗'}
+                      </div>
+                      {p.note && <div className="text-[#6f6554]">{p.note}</div>}
+                    </div>
+                  ))}
+                  {(pred.time_complexity || pred.limit_note) && (
+                    <div className="mt-2 space-y-0.5 border-t border-[#2b241c] pt-2">
+                      {pred.time_complexity && (
+                        <div className="text-[#8b7f6d]">計算量(予想): 時間 {pred.time_complexity} / 空間 {pred.space_complexity || '-'}</div>
+                      )}
+                      {pred.limit_note && <div className="text-[#cbbfa9]">{pred.limit_note}</div>}
+                    </div>
+                  )}
+                  <p className="mt-2 text-[10.5px] text-[#6f6554]">※ これはAIの予想で、実際に実行した結果ではありません。</p>
+                </div>
+              ) : cases.length > 0 ? (
                 <div className="space-y-2">
                   {cases.map((t, i) => (
                     <div key={i}>
@@ -190,13 +233,11 @@ export default function ExamShell({
                       <div className="text-[#b9d98f]">期待: {t.expected || '-'}</div>
                     </div>
                   ))}
+                  <p className="mt-2 text-[10.5px] text-[#6f6554]">「実行（AI予想）」で、AIが出力を予想します。提出で採点。</p>
                 </div>
               ) : (
                 <p className="text-[#8b7f6d]">サンプル入出力は用意されていません。</p>
               )}
-              <p className="mt-3 border-t border-[#2b241c] pt-2 text-[10.5px] text-[#6f6554]">
-                ※ この環境ではコードを実行しません。「解答を提出する」とAIがコードを読んで判定します（実行はあとで対応予定）。
-              </p>
             </div>
           </div>
 
