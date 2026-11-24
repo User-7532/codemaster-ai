@@ -12,6 +12,7 @@ import HintBox from '@/components/workspace/HintBox';
 import GradeResult from '@/components/workspace/GradeResult';
 import MentorChat from '@/components/workspace/MentorChat';
 import HintChat from '@/components/workspace/HintChat';
+import ExamShell from '@/components/workspace/ExamShell';
 
 const MODE_LABEL = { interview: '模擬面接', review: '復習', ai: 'AI出題', mixed: '混在', practice: '練習' };
 
@@ -34,6 +35,8 @@ export default function Workspace() {
   const [grading, setGrading] = useState(false);
   const [gisting, setGisting] = useState(false);
   const [tracing, setTracing] = useState(false);
+  // 模擬面接の「コードの説明」（方針を言語化する練習。今は採点へ渡すだけで未使用、後で活かせる）
+  const [explanation, setExplanation] = useState('');
 
   // 解けないときは、この問題の解答を写経する場を作って、そちらへ移る
   const traceThis = async () => {
@@ -89,6 +92,7 @@ export default function Workspace() {
         mode,
         duration_seconds: duration(),
         code,
+        explanation,
       });
       if (res.data?.error) throw new Error(res.data.error);
       const r = res.data.result;
@@ -185,6 +189,29 @@ export default function Workspace() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  // 模擬面接は本番（Track）と同じ画面構成にする。中身（採点・タイマー・復習記録・写経）はここのまま使う。
+  if (mode === 'interview') {
+    return (
+      <ExamShell
+        problem={problem}
+        language={language}
+        onSwitchLanguage={switchLanguage}
+        code={code}
+        onCode={setCode}
+        remaining={remaining}
+        limit={limit}
+        grading={grading}
+        onSubmit={() => handleGrade(false)}
+        result={result}
+        tracing={tracing}
+        onTrace={traceThis}
+        onBack={() => navigate('/curriculum')}
+        explanation={explanation}
+        onExplanation={setExplanation}
+      />
     );
   }
 
