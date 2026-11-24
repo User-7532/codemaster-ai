@@ -37,6 +37,8 @@ export default function Workspace() {
   const [tracing, setTracing] = useState(false);
   // 模擬面接の「コードの説明」（方針を言語化する練習。今は採点へ渡すだけで未使用、後で活かせる）
   const [explanation, setExplanation] = useState('');
+  // 模擬面接の追加ファイル（メイン以外。複数ファイルタブ用）
+  const [files, setFiles] = useState([]);
 
   // 解けないときは、この問題の解答を写経する場を作って、そちらへ移る
   const traceThis = async () => {
@@ -65,6 +67,7 @@ export default function Workspace() {
         const lang = ['cpp', 'c', 'python'].find((id) => templates.some((t) => t.language === id)) || 'cpp';
         setLanguage(lang);
         setCode(getTemplate(p, lang) || fallbackTemplate(lang));
+        setFiles([]);
       })
       .catch(() => setLoadFailed(true));
   }, [problemId]);
@@ -91,7 +94,7 @@ export default function Workspace() {
       let execution = null;
       if ((problem.test_cases || []).length) {
         try {
-          const runRes = await base44.functions.invoke('runCode', { language, code, cases: problem.test_cases || [] });
+          const runRes = await base44.functions.invoke('runCode', { language, code, cases: problem.test_cases || [], files });
           if (!runRes.data?.error) execution = runRes.data;
         } catch {
           // 実行不可時はAI採点へ
@@ -182,6 +185,7 @@ export default function Workspace() {
     if (!pristine && !window.confirm('言語を切り替えるとコードは初期状態に戻ります。よろしいですか？')) return;
     setLanguage(next);
     setCode(getTemplate(problem, next) || fallbackTemplate(next));
+    setFiles([]);
     setResult(null);
   };
 
@@ -223,6 +227,8 @@ export default function Workspace() {
         onBack={() => navigate('/curriculum')}
         explanation={explanation}
         onExplanation={setExplanation}
+        files={files}
+        onFiles={setFiles}
       />
     );
   }
