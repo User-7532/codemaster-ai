@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Loader2, Mic, MicOff, SkipForward, X } from 'lucide-react';
+import { Check, Loader2, Mic, MicOff, RotateCcw, SkipForward, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { domainLabel } from '@/lib/knowledge-domains';
 import { revealsAnswer } from '@/lib/answer-guard';
@@ -10,6 +10,10 @@ export default function WrittenCard({ card, onResult, onSkip }) {
   const [busy, setBusy] = useState(false);
   const [verdict, setVerdict] = useState(null);
   const [error, setError] = useState('');
+  // 一度でも間違えたか（再挑戦で正解しても、復習では不正解扱いにして早めに出す）
+  const [everWrong, setEverWrong] = useState(false);
+  // 不正解のとき、模範解答を見るか（再挑戦を意味あるものにするため、既定では伏せる）
+  const [revealed, setRevealed] = useState(false);
   const speech = useSpeechInput({ onText: (t) => setDraft((d) => d + t) });
 
   const judge = async () => {
@@ -23,13 +27,24 @@ export default function WrittenCard({ card, onResult, onSkip }) {
         answer_text: draft.trim(),
       });
       if (res.data?.error) throw new Error(res.data.error);
-      setVerdict({ correct: res.data.correct === true, feedback: res.data.feedback || '' });
+      const correct = res.data.correct === true;
+      if (!correct) setEverWrong(true);
+      setVerdict({ correct, feedback: res.data.feedback || '' });
     } catch (e) {
       setError(e.message || '判定できませんでした');
     } finally {
       setBusy(false);
     }
   };
+
+  // 不正解でもう一度：下書きは残したまま入力に戻す
+  const retry = () => {
+    setVerdict(null);
+    setRevealed(false);
+    setError('');
+  };
+  // 模範解答を出す条件：正解したとき、または不正解で「答えを見る」を押したとき
+  const showAnswer = verdict && (verdict.correct || revealed);
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/50 p-5">
@@ -63,7 +78,11 @@ export default function WrittenCard({ card, onResult, onSkip }) {
             {verdict.correct ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
             {verdict.correct ? '正解' : '不正解'}
           </p>
+          {verdict.correct && everWrong && (
+            <p className="text-[10.5px] text-muted-foreground/80">（前に間違えたので、復習でまた出します）</p>
+          )}
           <p className="text-[11.5px] leading-relaxed text-foreground/80">{verdict.feedback}</p>
+          {showAnswer && (
           <div className="rounded-lg bg-secondary/40 px-3 py-2.5">
             {card.expected_points?.length > 0 && (
               <div className="mb-2.5">
@@ -86,13 +105,33 @@ export default function WrittenCard({ card, onResult, onSkip }) {
               <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground/80">{card.explanation}</p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => onResult(verdict.correct)}
-            className="w-full rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            次へ
-          </button>
+          )}
+          {!verdict.correct && !revealed ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={retry}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> もう一度答える
+              </button>
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                className="rounded-lg border border-border/70 px-3 py-2.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                答えを見る
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onResult(verdict.correct && !everWrong)}
+              className="w-full rounded-lg bg-primary py-2.5 text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              次へ
+            </button>
+          )}
         </div>
       ) : (
         <>
