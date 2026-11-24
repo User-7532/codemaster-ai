@@ -7,7 +7,7 @@ import { linesAround, registerCodeAsk } from '@/lib/selection-ask';
 const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
 const CLOSE_SET = new Set([')', ']', '}', '"', "'"]);
 
-export default function CodeEditor({ value = '', onChange, language = 'cpp', minRows = 16 }) {
+export default function CodeEditor({ value = '', onChange, language = 'cpp', minRows = 16, filename }) {
   const html = useMemo(() => highlight(value, language), [value, language]);
   const lineCount = Math.max(1, value.split('\n').length);
   const rows = Math.max(minRows, lineCount + 1);
@@ -87,7 +87,7 @@ export default function CodeEditor({ value = '', onChange, language = 'cpp', min
     <div className="overflow-hidden rounded-xl border border-[#2b241c] bg-[#14110d] shadow-[0_2px_18px_-8px_rgba(52,44,36,0.5)]">
       <div className="flex items-center gap-2 border-b border-[#2b241c] px-3 py-1.5">
         <span className="h-2 w-2 rounded-full bg-[#c2603f]" />
-        <span className="font-mono text-[11px] text-[#c4b8a4]">{languageFilename(language)}</span>
+        <span className="font-mono text-[11px] text-[#c4b8a4]">{filename || languageFilename(language)}</span>
       </div>
       <div className="flex max-h-[62vh] overflow-y-auto">
         <div
