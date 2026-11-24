@@ -11,7 +11,7 @@ import FileTabs from '@/components/workspace/FileTabs';
 import SplitPane from '@/components/ui/SplitPane';
 
 const mmss = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-const DIFF = { basic: '基礎', intermediate: '中級', advanced: '上級' };
+const DIFF = { basic: '初級', intermediate: '中級', advanced: '上級' };
 
 // 本番（Track等、世界的なコード面接）と同じ画面構成の模擬面接。
 // アプリの柔らかい雰囲気ではなく、壁紙も隠した「試験環境」らしい硬い見た目にする（全画面・不透明）。
@@ -94,9 +94,9 @@ export default function ExamShell({
   const cases = problem.test_cases || [];
 
   return (
-    <div className="fixed inset-0 z-40 overflow-y-auto bg-slate-100 text-slate-800">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-800">
       {/* 上部バー */}
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <div className="flex flex-none flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm">
         <button
           type="button"
           onClick={onBack}
@@ -138,13 +138,14 @@ export default function ExamShell({
         </button>
       </div>
 
-      <div className="p-3">
+      <div className="min-h-0 flex-1 p-3">
         <SplitPane
+          fill
           storageKey="cm-exam-split"
           min={300}
           initial={460}
           left={
-            <aside className="overflow-hidden rounded-lg border border-slate-200 bg-white lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto">
+            <aside className="rounded-lg border border-slate-200 bg-white lg:h-full lg:overflow-y-auto">
           <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-[11px] text-amber-700">
             メモリ上限(MB): 512 ／ 実行タイムアウト(ms): 2000{timed ? ` ／ 制限時間 ${limit}分` : ''}
           </div>
@@ -202,7 +203,7 @@ export default function ExamShell({
             </aside>
           }
           right={
-            <section className="min-w-0 space-y-3">
+            <section className="min-w-0 space-y-3 pb-24 lg:h-full lg:overflow-y-auto lg:pb-2">
           <div className="flex flex-wrap items-center gap-1.5">
             {LANGUAGES.map((l) => (
               <button
