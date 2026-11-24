@@ -51,7 +51,7 @@ export default function AssistantChat() {
   const [importing, setImporting] = useState(false);
   // いま知識に取り込んでいる返信のID（ボタンにくるくるを出す）
   const [importingId, setImportingId] = useState(null);
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { toast } = useToast();
   const drag = useDragPosition();
 
@@ -168,6 +168,10 @@ export default function AssistantChat() {
       setImportingId(null);
     }
   };
+
+  // 模擬面接（本番形式）の画面では、本番同様にAIへアクセスできないようにする
+  const examMode = pathname.startsWith('/solve/') && new URLSearchParams(search).get('mode') === 'interview';
+  if (examMode) return null;
 
   return (
     <div className="pointer-events-none fixed bottom-24 right-3 z-50 flex flex-col items-end gap-2 lg:bottom-6 lg:right-6">
