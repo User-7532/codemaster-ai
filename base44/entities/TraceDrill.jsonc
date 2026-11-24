@@ -60,7 +60,8 @@
       "enum": [
         "cpp",
         "c",
-        "python"
+        "python",
+        "html"
       ],
       "type": "string"
     },
